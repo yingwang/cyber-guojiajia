@@ -1,15 +1,27 @@
-"""Wrap prototype.html (the Artifact source, which has no document skeleton) into a standalone index.html for GitHub Pages."""
+"""Build the two published pages from src/app.html and the catalog in data/.
+
+prototype.html  the Claude Artifact (no document skeleton; the Artifact host adds one)
+index.html      the GitHub Pages site (full document)
+"""
+import json
 import pathlib
 
 here = pathlib.Path(__file__).parent
-body = (here / 'prototype.html').read_text(encoding='utf-8')
-body = body.replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')
+src = (here / 'src' / 'app.html').read_text(encoding='utf-8')
+base = json.loads((here / 'data' / 'base.json').read_text(encoding='utf-8'))
+cpath = here / 'data' / 'content.json'
+content = json.loads(cpath.read_text(encoding='utf-8')) if cpath.exists() else {}
+
+data = ('const BASE=' + json.dumps(base, ensure_ascii=False, separators=(',', ':')) + ';\n'
+        'const CONTENT=' + json.dumps(content, ensure_ascii=False, separators=(',', ':')) + ';')
+assert src.count('/*__DATA__*/') == 1
+artifact = src.replace('/*__DATA__*/', data.replace('</', '<\\/'))
+(here / 'prototype.html').write_text(artifact, encoding='utf-8')
 
 ICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E"
         "%3Crect x='6' y='22' width='52' height='36' rx='4' fill='%23C79661'/%3E"
         "%3Crect x='2' y='14' width='60' height='12' rx='3' fill='%239A6E3E'/%3E"
         "%3Crect x='27' y='14' width='10' height='44' fill='%23FFC93A'/%3E%3C/svg%3E")
-
 head = f'''<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -20,9 +32,9 @@ head = f'''<!doctype html>
 <link rel="icon" href="{ICON}">
 <style>:root{{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}}body{{margin:0}}img{{max-width:100%}}[hidden]{{display:none!important}}</style>
 '''
-
-# The first <style>…</style> and the <title>/<link> lines belong in <head>; the rest is body.
-split = body.index('</style>') + len('</style>')
-page = head + body[:split] + '\n</head>\n<body>\n' + body[split:].lstrip() + '\n</body>\n</html>\n'
+page = artifact.replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')
+split = page.index('</style>') + len('</style>')
+page = head + page[:split] + '\n</head>\n<body>\n' + page[split:].lstrip() + '\n</body>\n</html>\n'
 (here / 'index.html').write_text(page, encoding='utf-8')
-print('index.html', len(page))
+print('products', len(base), 'with copy', sum(1 for b in base if b['id'] in content),
+      '| prototype', len(artifact), '| index', len(page))

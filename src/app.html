@@ -1,0 +1,641 @@
+<title>赛博过家家</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@500;700&family=ZCOOL+KuaiLe&display=swap">
+<style>
+/* Layout: one phone-width column. Sticky shop header (search + aisles), a two-up shelf of toy-tagged goods,
+   a fixed four-tab bar, and bottom sheets (scrolling body + pinned footer) for product, checkout, unboxing.
+   Kraft parcels and yellow price tags carry the identity. */
+:root{
+  --bg:#EDF0F6; --surface:#FFFFFF; --tile:#E1E7F1; --ink:#17203A; --muted:#5C6684; --line:#D2D9E6;
+  --accent:#EE3F6B; --accent-ink:#FFFFFF; --tag:#FFC93A; --tag-ink:#2B2100; --kraft:#C79661; --kraft-dark:#9A6E3E; --ok:#169E70;
+  --soft:#F4F6FA; --scrim:rgba(10,14,24,.45);
+  --f-display:"ZCOOL KuaiLe","Noto Sans SC",system-ui,sans-serif;
+  --f-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --f-num:"Space Grotesk","Noto Sans SC",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F131D; --surface:#181E2D; --tile:#222A3D; --ink:#ECEFF7; --muted:#98A1BB; --line:#2B3349;
+  --accent:#FF5C86; --accent-ink:#FFFFFF; --tag:#FFD153; --tag-ink:#2B2100; --kraft:#B78852; --kraft-dark:#8B6236; --ok:#31BE8C;
+  --soft:#1E2536; --scrim:rgba(0,0,0,.6); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0F131D; --surface:#181E2D; --tile:#222A3D; --ink:#ECEFF7; --muted:#98A1BB; --line:#2B3349;
+  --accent:#FF5C86; --accent-ink:#FFFFFF; --tag:#FFD153; --tag-ink:#2B2100; --kraft:#B78852; --kraft-dark:#8B6236; --ok:#31BE8C;
+  --soft:#1E2536; --scrim:rgba(0,0,0,.6); color-scheme:dark }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button{font:inherit;color:inherit}
+.app{max-width:520px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 calc(96px + env(safe-area-inset-bottom,0px))}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{font-family:var(--f-display);font-size:28px;line-height:1;letter-spacing:1px}
+.logo i{font-style:normal;color:var(--accent)}
+.saved-pill{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px;white-space:nowrap}
+.saved-pill b{font-family:var(--f-num);color:var(--ink);font-size:13px;margin-left:4px}
+.search{display:flex;align-items:center;gap:8px;margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 12px;height:42px}
+.search:focus-within{border-color:var(--accent)}
+.search svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2;flex:none}
+.search input{border:0;outline:0;background:transparent;color:var(--ink);font:inherit;flex:1;min-width:0;height:100%}
+.search input::placeholder{color:var(--muted)}
+.chips{display:flex;gap:8px;overflow-x:auto;margin-top:10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip-btn{flex:none;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:5px 14px;font-size:14px}
+.chip-btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* shelf */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px;padding-top:6px}
+.card{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:18px}
+.art{aspect-ratio:1;max-width:100%;background:var(--tile);border-radius:18px;display:grid;place-items:center;overflow:hidden;position:relative}
+.art svg{width:76%;height:76%}
+.flag{position:absolute;top:8px;left:8px;font-size:11px;font-weight:700;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:1px 7px}
+.dots-c{position:absolute;right:8px;bottom:8px;display:flex;gap:3px}
+.dots-c i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--surface)}
+.nm{font-size:14px;font-weight:500;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{position:relative;display:inline-flex;align-items:baseline;background:var(--tag);color:var(--tag-ink);font-family:var(--f-num);font-weight:700;font-size:16px;line-height:1.3;padding:2px 10px 2px 17px;border-radius:4px 9px 9px 4px;font-variant-numeric:tabular-nums}
+.tag::before{content:"";position:absolute;left:6px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:var(--bg)}
+.sheet .tag::before{background:var(--surface)}
+.tag small{font-size:11px;font-weight:500;margin-right:1px}
+.tag.big{font-size:24px;padding:4px 14px 4px 22px}
+.tag.big::before{left:8px;width:8px;height:8px;margin-top:-4px}
+s{color:var(--muted);font-family:var(--f-num);font-size:12px}
+.meta{font-size:12px;color:var(--muted)}
+.none{padding:48px 0;text-align:center;color:var(--muted)}
+.count{font-size:12px;color:var(--muted);margin:2px 0 8px}
+
+/* tab bar */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs-in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tab{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 0;font-size:12px;color:var(--muted);position:relative}
+.tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.tab[aria-current="page"]{color:var(--ink);font-weight:700}
+.tab[aria-current="page"] svg{stroke:var(--accent)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:10px}
+.badge{position:absolute;top:3px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-family:var(--f-num);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+
+/* sheets: scrolling body + optional pinned footer */
+.sheet-wrap{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;transition:opacity .25s}
+.sheet{position:relative;width:100%;max-width:520px;max-height:92%;display:flex;flex-direction:column;background:var(--surface);color:var(--ink);border-radius:22px 22px 0 0;overflow:hidden;transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);outline:none}
+.sheet-wrap.show .scrim{opacity:1}
+.sheet-wrap.show .sheet{transform:none}
+.sh-body{flex:1 1 auto;min-height:0;overflow:auto;padding-block:10px calc(22px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sh-body.has-foot{padding-block:10px 18px}
+.sh-foot{flex:none;display:flex;gap:10px;background:var(--surface);border-top:1px solid var(--line);padding-block:10px calc(12px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.sh-art{background:var(--tile);border-radius:20px;aspect-ratio:16/10;max-width:100%;display:grid;place-items:center}
+.sh-art svg{height:82%;width:auto;max-width:100%}
+h2{font-family:var(--f-display);font-weight:400;font-size:25px;line-height:1.25;margin:14px 0 4px;text-wrap:balance}
+h3{font-size:16px;margin:26px 0 10px;display:flex;align-items:baseline;gap:8px}
+h3 small{font-weight:400;color:var(--muted);font-size:13px}
+.blurb{margin:0;color:var(--muted)}
+.pricebar{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+
+/* gallery */
+.gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;border-radius:20px;background:var(--tile);scrollbar-width:none;overscroll-behavior-x:contain}
+.gal::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:16/10;max-width:100%;position:relative}
+.slide>svg{display:block;width:100%;height:100%}
+.slide .lab{position:absolute;left:10px;bottom:10px;font-size:11px;background:var(--surface);color:var(--muted);border-radius:6px;padding:1px 8px}
+.gdots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.gdots i{width:6px;height:6px;border-radius:3px;background:var(--line);transition:width .2s,background .2s}
+.gdots i.on{width:16px;background:var(--ink)}
+.sc-wall{fill:var(--tile)}
+.swatches{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.swatches span{font-size:13px;color:var(--muted);margin-right:4px}
+.swc{all:unset;cursor:pointer;width:28px;height:28px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1.5px var(--line)}
+.swc[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
+.swc:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* details */
+.desc{margin:0;line-height:1.75}
+.points{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.points li{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.points li::before{content:"✓";flex:none;width:18px;height:18px;margin-top:2px;border-radius:50%;background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok);font-size:11px;font-weight:700;display:grid;place-items:center}
+table.specs{width:100%;border-collapse:collapse;font-size:14px}
+.specs th{width:34%;text-align:left;font-weight:400;color:var(--muted);padding:8px 10px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.specs td{padding:8px 0;border-bottom:1px solid var(--line)}
+
+/* compare */
+.cmp-wrap{overflow-x:auto}
+table.cmp{width:100%;border-collapse:collapse;font-size:13px}
+.cmp th{font-weight:500;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.cmp td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.cmp td.n{font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cmp tr.me td{background:var(--tile)}
+.cmp tr.me td:first-child{border-radius:10px 0 0 10px}
+.cmp tr.me td:last-child{border-radius:0 10px 10px 0}
+.cmp tr[data-open]{cursor:pointer}
+.cmp .d{display:block;font-size:11px}
+.cmp .up{color:var(--accent)}
+.cmp .down{color:var(--ok)}
+
+/* reviews */
+.rv-head{display:flex;align-items:center;gap:12px;background:var(--soft);border-radius:14px;padding:12px 14px}
+.rv-score{font-family:var(--f-num);font-size:30px;font-weight:700;line-height:1}
+.stars{color:var(--tag);letter-spacing:1px;font-size:13px}
+.stars b{color:var(--line);font-weight:400}
+.rv-note{font-size:12px;color:var(--muted);margin-top:2px}
+.rv{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;padding:14px 0;border-bottom:1px solid var(--line)}
+.rv:last-child{border-bottom:0}
+.av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;color:#FFFFFF}
+.rv-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.rv-top b{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-meta{font-size:12px;color:var(--muted)}
+.rv p{margin:4px 0 0;font-size:14px;line-height:1.6}
+.follow{margin-top:8px;background:var(--soft);border-radius:10px;padding:8px 10px;font-size:13px;line-height:1.55}
+.follow em{font-style:normal;color:var(--accent);font-weight:500;margin-right:4px}
+
+.actions{display:flex;gap:10px;margin-top:20px}
+.btn{appearance:none;border:0;cursor:pointer;font-weight:700;border-radius:14px;padding:11px 18px;background:var(--accent);color:var(--accent-ink);flex:1;text-align:center;text-decoration:none;display:inline-flex;justify-content:center;align-items:center;gap:6px;min-height:46px;font-size:15px}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.sm{min-height:34px;padding:5px 12px;font-size:13px;border-radius:10px;flex:none}
+.btn.wide{width:100%;flex:none}
+.btn[disabled]{opacity:.6;cursor:default}
+.btn:focus-visible,.chip-btn:focus-visible,.opt:focus-visible,.sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* cart */
+.line{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.line .art{border-radius:12px}
+.line .nm{min-height:0}
+.line .meta{margin:2px 0 4px}
+.step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.step button{all:unset;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;font-size:18px}
+.step span{min-width:22px;text-align:center;font-family:var(--f-num)}
+.sum{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:14px 14px 14px 18px;background:var(--surface);border-radius:18px;border:1px solid var(--line)}
+.sum .total{font-family:var(--f-num);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.sum .label{font-size:12px;color:var(--muted)}
+.empty{text-align:center;padding:56px 0 16px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:14px}
+.empty svg{width:120px;height:auto}
+
+/* checkout */
+.mini{list-style:none;margin:0;padding:0}
+.mini li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:14px}
+.mini li span:last-child{font-family:var(--f-num);white-space:nowrap}
+.mini li small{color:var(--muted)}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.opt{all:unset;cursor:pointer;border:1.5px solid var(--line);border-radius:12px;padding:9px 10px;display:flex;flex-direction:column;gap:1px;min-width:0}
+.opt b{font-size:14px}
+.opt small{color:var(--muted);font-size:12px}
+.opt[aria-checked="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.pay{position:relative;height:168px;margin-top:18px}
+.cardface{position:absolute;top:0;left:50%;margin-left:-110px;width:220px;height:134px;border-radius:16px;padding:14px 16px;color:var(--accent-ink);background:linear-gradient(135deg,var(--accent),#FF8B55 58%,var(--tag));display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 10px 24px rgba(23,32,58,.18);z-index:1}
+.cardface .t{display:flex;justify-content:space-between;align-items:flex-start;font-family:var(--f-display);font-size:18px}
+.cardface .t b{font-family:var(--f-num);font-size:30px;line-height:.9}
+.cardface .num{font-family:var(--f-num);letter-spacing:2px;font-size:15px}
+.cardface .lim{font-size:11px;opacity:.9}
+.cardface.swipe{animation:swipe .95s ease-in-out}
+@keyframes swipe{0%{transform:translateY(0)}45%{transform:translateY(62px)}100%{transform:translateY(0)}}
+.reader{position:absolute;bottom:0;left:50%;margin-left:-125px;width:250px;height:50px;background:var(--ink);border-radius:12px 12px 16px 16px;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 16px;color:var(--bg);font-size:12px}
+.reader::before{content:"";position:absolute;top:7px;left:18px;right:18px;height:4px;border-radius:2px;background:var(--bg);opacity:.35}
+.reader i{width:11px;height:11px;border-radius:50%;background:var(--tag);transition:background .2s,box-shadow .2s}
+.reader.ok i{background:var(--ok);box-shadow:0 0 12px var(--ok)}
+.fine{font-size:12px;color:var(--muted);text-align:center;margin:10px 0 0}
+.ok-title{font-family:var(--f-display);font-size:28px;text-align:center;margin:8px 0 12px}
+.receipt{background:var(--bg);border-radius:14px 14px 0 0;padding:14px 16px 18px;position:relative;margin-bottom:16px}
+.receipt::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:radial-gradient(circle at 7px 10px,var(--surface) 6px,var(--bg) 6.5px) 0 0/14px 10px repeat-x}
+.r-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.r-row:last-child{border-bottom:0}
+.r-row span{color:var(--muted)}
+.r-row b{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-weight:500}
+.r-row.big b{font-size:24px;font-weight:700;color:var(--accent)}
+
+/* parcels */
+.sec-title{font-family:var(--f-display);font-weight:400;font-size:22px;margin:10px 0 4px}
+.parcel{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:12px;overflow:hidden}
+.parcel::before{content:"";position:absolute;top:0;bottom:0;right:28px;width:30px;background:var(--kraft);opacity:.16}
+.p-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative}
+.no{font-family:var(--f-num);font-size:13px;color:var(--muted);letter-spacing:.5px;margin-right:auto}
+.st{font-size:12px;border-radius:6px;padding:1px 8px;background:var(--tile)}
+.st.go{background:var(--tag);color:var(--tag-ink)}
+.st.done{background:var(--ok);color:var(--accent-ink)}
+.demo{font-size:11px;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:0 6px}
+.thumbs{display:flex;gap:8px;margin:12px 0 0;position:relative}
+.thumbs .art{width:56px;border-radius:12px}
+.bar{position:relative;height:8px;border-radius:4px;background:var(--tile);margin:30px 0 8px}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--kraft);transition:width 1s linear}
+.truck{position:absolute;top:-24px;width:32px;height:22px;transform:translateX(-50%);transition:left 1s linear}
+.truck svg{display:block;width:100%;height:100%}
+.kr{fill:var(--kraft)} .krd{fill:var(--kraft-dark)} .tink{fill:var(--ink)} .tapef{fill:var(--tag);opacity:.9}
+.stages{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));font-size:11px;color:var(--muted);text-align:center}
+.stages li.done{color:var(--ink);font-weight:500}
+.where{font-size:13px;margin:10px 0 0;color:var(--muted);position:relative}
+.where b{color:var(--ink);font-weight:500}
+.parcel .btn{margin-top:12px;position:relative}
+
+/* unboxing */
+.stage{position:relative;height:236px;width:220px;margin:4px auto 0}
+.boxf,.lid,.pop,.glow{position:absolute}
+.boxf{left:30px;bottom:0;width:160px;height:110px;z-index:2}
+.lid{left:22px;bottom:104px;width:176px;height:32px;z-index:3;transform-origin:20% 100%}
+.pop{left:50%;bottom:24px;z-index:1;display:flex;gap:6px;transform:translate(-50%,40px) scale(.45);opacity:0}
+.pop svg{width:104px;height:104px}
+.pop.many svg{width:72px;height:72px}
+.glow{left:50%;top:10px;width:180px;height:180px;margin-left:-90px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--tag) 55%,transparent),transparent 65%);opacity:0;transform:scale(.6)}
+.stage.open .lid{transform:translate(-26px,-74px) rotate(-30deg);opacity:0;transition:transform .55s cubic-bezier(.3,.7,.3,1),opacity .4s .25s}
+.stage.open .pop{transform:translate(-50%,-84px) scale(1);opacity:1;transition:transform .75s .25s cubic-bezier(.2,1.4,.4,1),opacity .3s .25s}
+.stage.open .glow{opacity:1;transform:scale(1);transition:opacity .6s .35s,transform .9s .35s}
+.unbox-after{text-align:center}
+
+/* home */
+.jar{display:grid;grid-template-columns:88px minmax(0,1fr);gap:16px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;margin-top:8px}
+.jar svg{width:88px;height:auto}
+.glass{fill:var(--tile);stroke:var(--line);stroke-width:2}
+.coins{fill:var(--tag)} .coin-edge{fill:none;stroke:var(--tag-ink);stroke-opacity:.16;stroke-width:1.5} .lidc{fill:var(--kraft)}
+.label{font-size:13px;color:var(--muted)}
+.big{font-family:var(--f-num);font-size:34px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.subline{font-size:13px;color:var(--muted);margin-top:4px}
+.owned{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.own{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.own .art{border-radius:12px}
+.own .nm{min-height:0;font-size:13px}
+.cool{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--muted)}
+.cool b{font-family:var(--f-num);color:var(--ink);font-weight:500;white-space:nowrap}
+.coolbar{height:4px;background:var(--tile);border-radius:2px;overflow:hidden}
+.coolbar i{display:block;height:100%;background:var(--ok);transition:width 1s linear}
+.hint{font-size:13px;color:var(--muted);margin:-4px 0 10px}
+.keep{font-size:12px;color:var(--ok)}
+.setrow{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.setrow p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.sw{flex:none;cursor:pointer;width:48px;height:28px;border-radius:14px;background:var(--line);position:relative;border:0;padding:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);transition:left .2s}
+.sw[aria-checked="true"]{background:var(--ok)}
+.sw[aria-checked="true"]::after{left:23px}
+.reset{margin-top:12px}
+.coupon{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 14px;align-items:center;border:1.5px dashed var(--accent);border-radius:14px;padding:12px 16px;margin:16px 0}
+.coupon .pct{grid-row:span 2;font-family:var(--f-display);font-size:32px;color:var(--accent);line-height:1}
+.coupon b{font-family:var(--f-num);letter-spacing:1px}
+.coupon small{color:var(--muted);font-size:12px}
+
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:40;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;transition-delay:0s!important}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">赛博<i>过家家</i></div>
+      <div class="saved-pill">已省<b id="savedPill">¥0</b></div>
+    </div>
+    <div id="shopTools">
+      <label class="search" for="q"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="搜 Lphone、口红、香槟" autocomplete="off" enterkeyhint="search"></label>
+      <div class="chips" id="chips"></div>
+    </div>
+  </header>
+  <main id="view"></main>
+</div>
+
+<nav class="tabs" aria-label="主菜单"><div class="tabs-in" id="tabs"></div></nav>
+
+<div class="sheet-wrap" id="sheetWrap" hidden>
+  <div class="scrim" data-close></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" tabindex="-1"></section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/*__DATA__*/
+(function(){
+/* ---------- goods ---------- */
+const P=BASE.map(b=>{const c=CONTENT[b.id]||{};return Object.assign({},b,{
+  desc:c.desc||b.blurb, points:c.points||[], specs:c.specs||[],
+  colors:(c.colors&&c.colors.length)?c.colors:[["默认",b.color]], reviews:c.reviews||[]});});
+const BY=Object.fromEntries(P.map(p=>[p.id,p]));
+const CATS=["全部","数码","美妆","服饰","运动","家居","吃喝"];
+const hexOf=(p,ci)=>(p.colors[ci]||p.colors[0])[1];
+const colorName=(p,ci)=>(p.colors[ci]||p.colors[0])[0];
+
+/* ---------- drawings (120 x 120) ---------- */
+const D="#262B38",L="#F7F6F2",SV="#C7CBD3",H="rgba(255,255,255,.38)";
+const JK=c=>`<path d="M44 18 L60 26 L76 18 L98 30 L104 86 L90 88 L86 50 L86 106 H34 L34 50 L30 88 L16 86 L22 30 Z" fill="${c}"/><line x1="60" y1="26" x2="60" y2="106" stroke="${D}" stroke-opacity=".35" stroke-width="2"/><path d="M44 18 L60 34 L76 18" fill="none" stroke="${D}" stroke-opacity=".25" stroke-width="3"/>`;
+const loop=(n,f)=>Array.from({length:n},(_,i)=>f(i)).join("");
+const PANS=["#F0D8C0","#E8C4B0","#D59A80","#B8705A","#8C4A3A","#E6B8A2","#C98A6B","#A0603C","#7A3E2E","#5A2E28","#E2C6A0","#D4A05A","#B07A3A","#9C5A4A","#6B3A30"];
+const ART={
+ phone:c=>`<rect x="36" y="10" width="48" height="100" rx="12" fill="${c}"/><rect x="41" y="15" width="24" height="24" rx="7" fill="${H}"/><circle cx="47.5" cy="21.5" r="4.4" fill="${D}"/><circle cx="58.5" cy="21.5" r="4.4" fill="${D}"/><circle cx="47.5" cy="32.5" r="4.4" fill="${D}"/><circle cx="58.5" cy="32.5" r="2" fill="${L}"/><rect x="40" y="14" width="4" height="90" rx="2" fill="${H}" opacity=".5"/>`,
+ earbuds:c=>`<rect x="30" y="52" width="60" height="46" rx="22" fill="${c}" stroke="${SV}" stroke-width="2"/><line x1="31" y1="66" x2="89" y2="66" stroke="${SV}" stroke-width="2"/><circle cx="60" cy="82" r="2.5" fill="${SV}"/><g fill="${L}" stroke="${SV}" stroke-width="2"><rect x="43" y="34" width="7" height="18" rx="3.5"/><rect x="70" y="34" width="7" height="18" rx="3.5"/><ellipse cx="46" cy="30" rx="9" ry="10"/><ellipse cx="74" cy="30" rx="9" ry="10"/></g>`,
+ headphones:c=>`<path d="M26 72 V58 a34 34 0 0 1 68 0 V72" fill="none" stroke="${c}" stroke-width="8" stroke-linecap="round"/><rect x="16" y="58" width="22" height="40" rx="10" fill="${c}"/><rect x="82" y="58" width="22" height="40" rx="10" fill="${c}"/><rect x="22" y="64" width="10" height="28" rx="5" fill="${H}"/><rect x="88" y="64" width="10" height="28" rx="5" fill="${H}"/>`,
+ speaker:c=>`<rect x="12" y="40" width="96" height="44" rx="22" fill="${c}"/><rect x="26" y="45" width="68" height="34" rx="17" fill="${D}" opacity=".18"/><circle cx="18" cy="62" r="10" fill="${D}"/><circle cx="102" cy="62" r="10" fill="${D}"/><circle cx="18" cy="62" r="5" fill="${SV}"/><circle cx="102" cy="62" r="5" fill="${SV}"/><rect x="46" y="57" width="28" height="10" rx="3" fill="${L}" opacity=".85"/>`,
+ minispeaker:c=>`<ellipse cx="60" cy="68" rx="40" ry="38" fill="${c}"/><ellipse cx="60" cy="36" rx="28" ry="7" fill="${D}" opacity=".85"/><ellipse cx="60" cy="36" rx="13" ry="3.2" fill="#B48CE6"/><path d="M28 74 q32 22 64 0" fill="none" stroke="${H}" stroke-width="3"/>`,
+ laptop:c=>`<rect x="22" y="26" width="76" height="52" rx="5" fill="${c}"/><rect x="27" y="31" width="66" height="42" rx="2" fill="${D}"/><path d="M27 31 h66 v12 L27 64 Z" fill="${H}" opacity=".35"/><path d="M12 80 H108 L102 90 H18 Z" fill="${c}"/><rect x="50" y="80" width="20" height="3" rx="1.5" fill="${D}" opacity=".35"/>`,
+ tablet:c=>`<rect x="26" y="12" width="68" height="96" rx="9" fill="${c}"/><rect x="31" y="17" width="58" height="86" rx="4" fill="${D}"/><path d="M31 17 h58 v28 L31 74 Z" fill="${H}" opacity=".3"/>`,
+ stylus:c=>`<g transform="rotate(-35 60 60)"><rect x="54" y="6" width="12" height="96" rx="6" fill="${c}" stroke="${SV}" stroke-width="1.5"/><path d="M54 100 L60 116 L66 100 Z" fill="${SV}"/><rect x="54" y="30" width="12" height="18" fill="${SV}" opacity=".4"/></g>`,
+ monitor:c=>`<rect x="8" y="14" width="104" height="66" rx="5" fill="${c}"/><rect x="12" y="18" width="96" height="58" rx="2" fill="${D}"/><path d="M12 18 h96 v14 L12 66 Z" fill="${H}" opacity=".25"/><path d="M50 80 h20 l6 22 h-32 Z" fill="${c}"/><rect x="38" y="100" width="44" height="6" rx="3" fill="${c}"/>`,
+ ereader:c=>`<rect x="30" y="10" width="60" height="100" rx="8" fill="${c}"/><rect x="35" y="16" width="50" height="80" rx="2" fill="#E8E5DA"/><g stroke="#A9A595" stroke-width="2.4" stroke-linecap="round"><line x1="41" y1="27" x2="79" y2="27"/><line x1="41" y1="35" x2="79" y2="35"/><line x1="41" y1="43" x2="72" y2="43"/><line x1="41" y1="55" x2="79" y2="55"/><line x1="41" y1="63" x2="76" y2="63"/><line x1="41" y1="71" x2="66" y2="71"/></g>`,
+ keyboard:c=>`<rect x="8" y="40" width="104" height="44" rx="7" fill="${c}"/>${loop(30,i=>`<rect x="${14+(i%10)*9.6}" y="${46+Math.floor(i/10)*9}" width="7.6" height="7" rx="1.5" fill="${L}" opacity=".82"/>`)}<rect x="34" y="73" width="52" height="6" rx="1.5" fill="${L}" opacity=".82"/>`,
+ mouse:c=>`<path d="M60 14 C82 14 92 34 92 60 C92 92 78 108 60 108 C42 108 28 92 28 60 C28 34 38 14 60 14 Z" fill="${c}"/><line x1="60" y1="14" x2="60" y2="48" stroke="${D}" stroke-opacity=".4" stroke-width="2"/><rect x="56" y="24" width="8" height="15" rx="4" fill="${SV}"/><path d="M30 60 q-8 6 -4 18" stroke="${SV}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+ powerbank:c=>`<rect x="32" y="12" width="56" height="96" rx="10" fill="${c}"/><rect x="38" y="18" width="44" height="22" rx="4" fill="${D}" opacity=".85"/><text x="60" y="33.5" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" font-weight="700" fill="${L}">88%</text><rect x="52" y="100" width="16" height="4" rx="2" fill="${D}"/><rect x="36" y="46" width="4" height="56" rx="2" fill="${H}"/>`,
+ watch:c=>`<rect x="46" y="4" width="28" height="112" rx="10" fill="${c}"/><rect x="38" y="34" width="44" height="52" rx="14" fill="${SV}"/><rect x="42" y="38" width="36" height="44" rx="10" fill="${D}"/><text x="60" y="65" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" font-weight="700" fill="${L}">10:09</text><rect x="82" y="50" width="5" height="12" rx="2" fill="${SV}"/>`,
+ ring:c=>`<ellipse cx="60" cy="62" rx="36" ry="40" fill="none" stroke="${c}" stroke-width="14"/><ellipse cx="60" cy="62" rx="36" ry="40" fill="none" stroke="${H}" stroke-width="3"/><circle cx="60" cy="102" r="2.5" fill="${D}" opacity=".5"/>`,
+ console:c=>`<rect x="30" y="34" width="60" height="52" rx="3" fill="${D}"/><rect x="34" y="38" width="52" height="44" rx="2" fill="#3A4256"/><rect x="12" y="34" width="20" height="52" rx="10" fill="${c}"/><rect x="88" y="34" width="20" height="52" rx="10" fill="#3D7BE0"/><circle cx="22" cy="49" r="4.5" fill="${D}"/><circle cx="98" cy="70" r="4.5" fill="${D}"/><g fill="${D}"><circle cx="98" cy="45" r="2"/><circle cx="94" cy="49" r="2"/><circle cx="102" cy="49" r="2"/><circle cx="98" cy="53" r="2"/></g>`,
+ console2:c=>`<path d="M44 8 Q34 60 40 112 H53 V8 Z" fill="${c}" stroke="${SV}" stroke-width="1.5"/><rect x="53" y="10" width="14" height="100" fill="${D}"/><rect x="59" y="14" width="2" height="92" fill="#4C7BE8"/><path d="M67 8 V112 H80 Q86 60 76 8 Z" fill="${c}" stroke="${SV}" stroke-width="1.5"/>`,
+ camera:c=>`<rect x="40" y="28" width="18" height="10" rx="2" fill="${SV}"/><rect x="16" y="36" width="88" height="54" rx="8" fill="${c}"/><rect x="16" y="50" width="88" height="28" fill="${D}"/><rect x="80" y="40" width="16" height="8" rx="2" fill="${D}" opacity=".7"/><circle cx="54" cy="64" r="20" fill="#9EA3AC"/><circle cx="54" cy="64" r="14" fill="${D}"/><circle cx="54" cy="64" r="7" fill="#3A4A6A"/><circle cx="51" cy="61" r="2.4" fill="${L}"/>`,
+ gimbal:c=>`<rect x="48" y="46" width="24" height="66" rx="10" fill="${c}"/><rect x="53" y="60" width="14" height="18" rx="3" fill="#3A4256"/><circle cx="60" cy="31" r="18" fill="${c}"/><circle cx="60" cy="31" r="10" fill="${D}"/><circle cx="60" cy="31" r="5" fill="#3A4A6A"/><circle cx="57.5" cy="28.5" r="1.8" fill="${L}"/>`,
+ drone:c=>`<g stroke="${c}" stroke-width="5" stroke-linecap="round"><line x1="46" y1="54" x2="22" y2="38"/><line x1="74" y1="54" x2="98" y2="38"/><line x1="46" y1="68" x2="24" y2="84"/><line x1="74" y1="68" x2="96" y2="84"/></g><rect x="42" y="48" width="36" height="26" rx="9" fill="${c}"/><circle cx="60" cy="78" r="7" fill="${D}"/><circle cx="60" cy="78" r="3" fill="#3A4A6A"/><g fill="${SV}" opacity=".85"><ellipse cx="22" cy="36" rx="16" ry="3"/><ellipse cx="98" cy="36" rx="16" ry="3"/><ellipse cx="24" cy="86" rx="16" ry="3"/><ellipse cx="96" cy="86" rx="16" ry="3"/></g>`,
+ actioncam:c=>`<rect x="34" y="25" width="14" height="6" rx="2" fill="#2F6BDB"/><rect x="24" y="30" width="72" height="60" rx="10" fill="${c}"/><rect x="30" y="38" width="28" height="22" rx="3" fill="#3A4256"/><circle cx="76" cy="56" r="14" fill="${D}"/><circle cx="76" cy="56" r="7" fill="#3A4A6A"/><circle cx="73" cy="53" r="2" fill="${L}"/>`,
+ dryer:c=>`<rect x="51" y="56" width="18" height="56" rx="7" fill="${c}"/><rect x="51" y="70" width="18" height="6" fill="${H}"/><circle cx="60" cy="38" r="20.5" fill="none" stroke="${c}" stroke-width="15"/><circle cx="60" cy="38" r="13" fill="none" stroke="${H}" stroke-width="2"/>`,
+ airwrap:c=>`<rect x="51" y="46" width="18" height="66" rx="8" fill="${c}"/><rect x="51" y="58" width="18" height="6" fill="${H}"/><rect x="52" y="8" width="16" height="40" rx="8" fill="${SV}"/><g stroke="${D}" stroke-opacity=".35" stroke-width="2"><line x1="52" y1="17" x2="68" y2="17"/><line x1="52" y1="25" x2="68" y2="25"/><line x1="52" y1="33" x2="68" y2="33"/><line x1="52" y1="41" x2="68" y2="41"/></g>`,
+ jar:c=>`<rect x="26" y="50" width="68" height="48" rx="12" fill="#F1EEE8" stroke="${SV}" stroke-width="1.5"/><rect x="28" y="34" width="64" height="20" rx="6" fill="${c}"/><rect x="30" y="38" width="60" height="4" fill="${H}"/><rect x="44" y="68" width="32" height="12" rx="2" fill="${SV}" opacity=".6"/>`,
+ tallbottle:c=>`<rect x="47" y="8" width="26" height="22" rx="3" fill="${D}"/><path d="M40 32 h40 l2 4 v68 a6 6 0 0 1 -6 6 h-32 a6 6 0 0 1 -6 -6 v-68 Z" fill="${c}"/><rect x="45" y="56" width="30" height="26" rx="2" fill="${H}"/><rect x="44" y="40" width="5" height="60" rx="2.5" fill="${H}"/>`,
+ dropper:c=>`<ellipse cx="60" cy="20" rx="9" ry="12" fill="${D}"/><rect x="50" y="28" width="20" height="18" rx="2" fill="#B9A06A"/><rect x="38" y="46" width="44" height="64" rx="12" fill="${c}"/><rect x="44" y="64" width="32" height="22" rx="2" fill="${H}"/><rect x="42" y="52" width="5" height="50" rx="2.5" fill="${H}"/>`,
+ maskbox:c=>`<rect x="18" y="34" width="84" height="62" rx="4" fill="${c}" stroke="${SV}" stroke-width="1.5"/><rect x="18" y="34" width="84" height="14" fill="#B23A3A"/><circle cx="60" cy="72" r="14" fill="${L}" stroke="${SV}" stroke-width="1.5"/><circle cx="55" cy="69" r="2" fill="${SV}"/><circle cx="65" cy="69" r="2" fill="${SV}"/><path d="M55 77 q5 4 10 0" stroke="${SV}" stroke-width="1.5" fill="none"/>`,
+ tube:c=>`<rect x="44" y="10" width="32" height="18" rx="3" fill="${D}"/><path d="M40 28 h40 v70 a10 10 0 0 1 -10 10 h-20 a10 10 0 0 1 -10 -10z" fill="${c}"/><rect x="46" y="48" width="28" height="30" rx="2" fill="${H}"/><rect x="44" y="34" width="5" height="64" rx="2.5" fill="${H}"/>`,
+ compact:c=>`<rect x="16" y="62" width="88" height="16" fill="${SV}"/><ellipse cx="60" cy="78" rx="44" ry="16" fill="${SV}"/><ellipse cx="60" cy="62" rx="44" ry="16" fill="${c}"/><ellipse cx="60" cy="62" rx="30" ry="10" fill="${H}"/><ellipse cx="60" cy="62" rx="9" ry="3" fill="${L}" opacity=".7"/>`,
+ foundation:c=>`<rect x="50" y="12" width="20" height="24" rx="3" fill="${D}"/><rect x="34" y="36" width="52" height="72" rx="6" fill="#E9C6A5"/><rect x="34" y="36" width="52" height="72" rx="6" fill="none" stroke="${c}" stroke-width="3"/><rect x="40" y="62" width="40" height="18" rx="2" fill="${c}" opacity=".85"/><rect x="38" y="42" width="4" height="60" rx="2" fill="${H}"/>`,
+ palette:c=>`<rect x="10" y="28" width="100" height="66" rx="6" fill="${c}"/>${loop(15,i=>`<rect x="${18+(i%5)*18}" y="${36+Math.floor(i/5)*18}" width="14" height="14" rx="2" fill="${PANS[i]}"/>`)}`,
+ lipstick:c=>`<path d="M50 30 L70 18 V52 H50 Z" fill="${c}"/><rect x="47" y="50" width="26" height="18" rx="2" fill="${SV}"/><rect x="44" y="66" width="32" height="46" rx="4" fill="${D}"/><rect x="48" y="70" width="4" height="38" rx="2" fill="${H}"/>`,
+ nailpolish:c=>`<rect x="50" y="8" width="20" height="40" rx="3" fill="${D}"/><rect x="40" y="46" width="40" height="62" rx="10" fill="${c}"/><rect x="46" y="54" width="6" height="46" rx="3" fill="${H}"/>`,
+ perfume:c=>`<rect x="50" y="14" width="20" height="20" rx="2" fill="${D}"/><rect x="54" y="33" width="12" height="9" fill="${SV}"/><rect x="28" y="42" width="64" height="66" rx="5" fill="${c}"/><rect x="34" y="48" width="52" height="54" rx="3" fill="${H}"/><rect x="42" y="68" width="36" height="14" fill="${L}"/>`,
+ leggings:c=>`<path d="M38 14 H82 L87 108 H66 L60 46 L54 108 H33 Z" fill="${c}"/><rect x="38" y="14" width="44" height="9" fill="${H}"/>`,
+ jacket:c=>JK(c),
+ parka:c=>JK(c)+`<path d="M40 24 a20 16 0 0 1 40 0 L76 30 a16 10 0 0 0 -32 0 Z" fill="#E3D6BC"/><circle cx="77" cy="46" r="5" fill="#C9473F"/>`,
+ hoodie:c=>`<path d="M42 22 L60 30 L78 22 L98 34 L104 90 L90 92 L86 54 L86 108 H34 L34 54 L30 92 L16 90 L22 34 Z" fill="${c}"/><path d="M40 24 a20 18 0 0 1 40 0 L72 32 a12 8 0 0 0 -24 0 Z" fill="${c}"/><path d="M40 24 a20 18 0 0 1 40 0" fill="none" stroke="${D}" stroke-opacity=".25" stroke-width="3"/><rect x="44" y="78" width="32" height="16" rx="4" fill="${D}" opacity=".15"/><g stroke="${L}" stroke-width="2"><line x1="56" y1="32" x2="55" y2="48"/><line x1="64" y1="32" x2="65" y2="48"/></g>`,
+ tee:c=>`<path d="M42 18 Q60 28 78 18 L104 32 L96 50 L86 46 L86 106 H34 L34 46 L24 50 L16 32 Z" fill="${c}" stroke="${SV}" stroke-width="1.5"/><path d="M48 20 Q60 30 72 20" fill="none" stroke="${SV}" stroke-width="2"/>`,
+ dress:c=>`<path d="M48 14 L54 14 L60 22 L66 14 L72 14 L74 34 L68 46 L96 108 H24 L52 46 L46 34 Z" fill="${c}"/><g fill="${L}" opacity=".75"><circle cx="50" cy="80" r="3"/><circle cx="66" cy="70" r="3"/><circle cx="74" cy="92" r="3"/><circle cx="42" cy="98" r="3"/><circle cx="60" cy="96" r="3"/><circle cx="58" cy="58" r="2.5"/></g><path d="M50 46 H70" stroke="${D}" stroke-opacity=".25" stroke-width="3"/>`,
+ jeans:c=>`<path d="M34 14 H86 L90 108 H66 L60 48 L54 108 H30 Z" fill="${c}"/><rect x="34" y="14" width="52" height="8" fill="${D}" opacity=".25"/><path d="M40 22 q6 10 14 10 M80 22 q-6 10 -14 10" fill="none" stroke="#E2B04A" stroke-width="1.5"/><circle cx="60" cy="18" r="2" fill="#E2B04A"/>`,
+ sneaker:c=>`<path d="M14 82 C14 66 22 60 34 58 L52 46 C60 42 66 46 70 52 L86 64 C98 66 106 70 106 80 V86 H14 Z" fill="${c}" stroke="${SV}" stroke-width="2"/><rect x="12" y="84" width="96" height="12" rx="5" fill="${L}" stroke="${SV}" stroke-width="2"/><path d="M40 62 L58 72 M46 56 L64 66" stroke="${SV}" stroke-width="2.5" stroke-linecap="round"/>`,
+ boot:c=>`<path d="M30 12 H62 V68 L94 80 C104 84 106 90 106 96 V100 H30 Z" fill="${c}"/><rect x="28" y="98" width="80" height="10" rx="3" fill="${D}" opacity=".85"/><line x1="30" y1="95" x2="106" y2="95" stroke="#E9C64A" stroke-width="2" stroke-dasharray="3 3"/><rect x="30" y="12" width="32" height="8" fill="${H}"/>`,
+ cap:c=>`<path d="M22 72 C22 40 40 26 60 26 C80 26 98 40 98 72 Z" fill="${c}"/><path d="M14 72 H106 C106 82 96 86 80 84 L60 80 L40 84 C24 86 14 82 14 72 Z" fill="${c}"/><path d="M14 72 H106 C106 82 96 86 80 84 L60 80 L40 84 C24 86 14 82 14 72 Z" fill="${D}" opacity=".2"/><circle cx="60" cy="27" r="4" fill="${c}"/><path d="M60 28 V72 M40 34 Q50 52 46 72 M80 34 Q70 52 74 72" stroke="${D}" stroke-opacity=".2" stroke-width="2" fill="none"/>`,
+ scarf:c=>`<path d="M30 14 H90 V64 Q90 74 80 74 H70 V106 H52 V74 H40 Q30 74 30 64 Z" fill="${c}"/><g stroke="${D}" stroke-opacity=".15" stroke-width="2"><line x1="30" y1="30" x2="90" y2="30"/><line x1="30" y1="46" x2="90" y2="46"/><line x1="52" y1="90" x2="70" y2="90"/></g><g stroke="${c}" stroke-width="2"><line x1="54" y1="106" x2="54" y2="114"/><line x1="58" y1="106" x2="58" y2="114"/><line x1="62" y1="106" x2="62" y2="114"/><line x1="66" y1="106" x2="66" y2="114"/></g>`,
+ sunglasses:c=>`<rect x="10" y="44" width="100" height="7" rx="2" fill="${c}"/><path d="M14 48 H54 L50 78 Q48 84 40 84 H24 Q16 84 15 76 Z" fill="${c}"/><path d="M66 48 H106 L105 76 Q104 84 96 84 H80 Q72 84 70 78 Z" fill="${c}"/><path d="M20 54 H48 L46 74 Q45 78 40 78 H26 Q21 78 21 72 Z" fill="#3A4A6A"/><path d="M72 54 H100 L99 72 Q99 78 94 78 H80 Q75 78 74 74 Z" fill="#3A4A6A"/><path d="M24 58 L34 58 L28 70 Z" fill="${H}"/>`,
+ backpack:c=>`<path d="M48 22 V14 a12 8 0 0 1 24 0 V22" fill="none" stroke="${c}" stroke-width="5"/><rect x="28" y="22" width="64" height="86" rx="12" fill="${c}"/><rect x="34" y="68" width="52" height="30" rx="6" fill="${D}" opacity=".12"/><circle cx="60" cy="54" r="7" fill="${L}"/><circle cx="60" cy="54" r="4" fill="${c}"/><path d="M34 40 Q60 30 86 40" fill="none" stroke="${D}" stroke-opacity=".2" stroke-width="2"/>`,
+ tote:c=>`<path d="M36 46 a24 24 0 0 1 48 0" fill="none" stroke="#7A5532" stroke-width="5"/><path d="M22 46 H98 L90 104 H30 Z" fill="${c}"/><path d="M44 46 H76 L72 62 H48 Z" fill="#7A5532"/><circle cx="60" cy="58" r="2.5" fill="${SV}"/>`,
+ wallet:c=>`<rect x="14" y="36" width="92" height="52" rx="6" fill="${c}"/><path d="M106 56 H76 a6 6 0 0 0 0 14 H106 Z" fill="${D}" opacity=".18"/><circle cx="80" cy="63" r="3" fill="#D9B44A"/><rect x="14" y="36" width="92" height="4" rx="2" fill="${H}"/>`,
+ chainbag:c=>`<path d="M30 52 Q60 4 90 52" fill="none" stroke="#D9B44A" stroke-width="3" stroke-dasharray="4 2"/><rect x="20" y="50" width="80" height="56" rx="5" fill="${c}"/><g stroke="${L}" stroke-opacity=".16" stroke-width="1.5"><path d="M20 70 L56 106 M20 90 L36 106 M36 50 L92 106 M56 50 L100 94 M76 50 L100 74 M100 70 L64 106 M100 90 L84 106 M84 50 L28 106 M64 50 L20 94 M44 50 L20 74"/></g><path d="M20 50 H100 V72 Q60 82 20 72 Z" fill="${c}"/><rect x="52" y="70" width="16" height="10" rx="2" fill="#D9B44A"/>`,
+ handbag:c=>`<path d="M42 50 V40 a18 18 0 0 1 36 0 V50" fill="none" stroke="${c}" stroke-width="6"/><rect x="20" y="48" width="80" height="58" rx="6" fill="${c}"/><path d="M20 48 H100 L94 68 H26 Z" fill="${D}" opacity=".18"/><rect x="40" y="60" width="40" height="5" rx="2" fill="#D9B44A"/><rect x="54" y="66" width="12" height="14" rx="2" fill="#D9B44A"/>`,
+ luxwatch:c=>`<rect x="47" y="4" width="26" height="112" rx="6" fill="${SV}"/><circle cx="60" cy="60" r="31" fill="${SV}"/><circle cx="60" cy="60" r="27" fill="${c}"/><circle cx="60" cy="60" r="19" fill="#145C38"/><g fill="${L}"><circle cx="60" cy="45" r="2.2"/><circle cx="75" cy="60" r="2.2"/><circle cx="60" cy="75" r="2.2"/><circle cx="45" cy="60" r="2.2"/></g><path d="M60 60 L60 48 M60 60 L69 64" stroke="${L}" stroke-width="2.6" stroke-linecap="round"/><rect x="90" y="55" width="6" height="10" rx="2" fill="${SV}"/>`,
+ bangle:c=>`<ellipse cx="60" cy="60" rx="44" ry="34" fill="none" stroke="${c}" stroke-width="12"/><ellipse cx="60" cy="60" rx="44" ry="34" fill="none" stroke="${H}" stroke-width="3"/><g fill="${L}" opacity=".9"><circle cx="16" cy="60" r="3"/><circle cx="104" cy="60" r="3"/><circle cx="35" cy="32" r="3"/><circle cx="85" cy="32" r="3"/><circle cx="35" cy="88" r="3"/><circle cx="85" cy="88" r="3"/></g>`,
+ necklace:c=>`<path d="M24 14 Q60 98 96 14" fill="none" stroke="${D}" stroke-opacity=".25" stroke-width="5"/><path d="M24 14 Q60 98 96 14" fill="none" stroke="${c}" stroke-width="2.5"/><path d="M46 72 H74 M60 72 V96" stroke="${D}" stroke-opacity=".3" stroke-width="10" stroke-linecap="round"/><path d="M46 72 H74 M60 72 V96" stroke="${c}" stroke-width="7" stroke-linecap="round"/><path d="M48 70 H58" stroke="${H}" stroke-width="2" stroke-linecap="round"/>`,
+ yogamat:c=>`<rect x="18" y="40" width="72" height="40" fill="${c}"/><ellipse cx="18" cy="60" rx="10" ry="20" fill="${c}"/><ellipse cx="90" cy="60" rx="12" ry="20" fill="${c}"/><ellipse cx="90" cy="60" rx="8" ry="14" fill="${D}" opacity=".2"/><ellipse cx="90" cy="60" rx="4" ry="7" fill="${c}"/><rect x="42" y="38" width="6" height="44" fill="${D}" opacity=".3"/><rect x="18" y="44" width="72" height="4" fill="${H}"/>`,
+ dumbbell:c=>`<rect x="30" y="55" width="60" height="10" rx="3" fill="${SV}"/>${loop(4,i=>`<rect x="${12+i*5}" y="${32+i*3}" width="5" height="${56-i*6}" rx="1.5" fill="${c}" opacity="${1-i*.12}"/><rect x="${103-i*5}" y="${32+i*3}" width="5" height="${56-i*6}" rx="1.5" fill="${c}" opacity="${1-i*.12}"/>`)}<rect x="52" y="52" width="16" height="16" rx="3" fill="${D}"/>`,
+ racket:c=>`<g stroke="${SV}" stroke-width="1" opacity=".9">${loop(9,i=>{const x=36+i*6,h=36*Math.sqrt(Math.max(0,1-Math.pow((x-60)/30,2)));return `<line x1="${x}" y1="${42-h}" x2="${x}" y2="${42+h}"/>`})}${loop(11,i=>{const y=12+i*6,w=30*Math.sqrt(Math.max(0,1-Math.pow((y-42)/36,2)));return `<line x1="${60-w}" y1="${y}" x2="${60+w}" y2="${y}"/>`})}</g><ellipse cx="60" cy="42" rx="30" ry="36" fill="none" stroke="${c}" stroke-width="7"/><path d="M52 74 L60 84 L68 74" fill="none" stroke="${c}" stroke-width="5"/><rect x="56" y="82" width="8" height="34" rx="3" fill="${D}"/>`,
+ bike:c=>`<circle cx="30" cy="82" r="18" fill="none" stroke="${D}" stroke-width="5"/><circle cx="92" cy="82" r="18" fill="none" stroke="${D}" stroke-width="5"/><path d="M30 82 L56 82 L76 46 L92 82 M56 82 L50 50 M43 50 H58 M76 46 L72 28 H84" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`,
+ tent:c=>`<path d="M10 100 L60 22 L110 100 Z" fill="${c}"/><path d="M60 22 L44 100 H76 Z" fill="${D}" opacity=".35"/><path d="M60 22 V100" stroke="${L}" stroke-width="2" opacity=".5"/><line x1="6" y1="101" x2="114" y2="101" stroke="${D}" stroke-opacity=".4" stroke-width="2"/>`,
+ stickvac:c=>`<rect x="56" y="44" width="8" height="56" fill="${SV}"/><rect x="38" y="96" width="44" height="14" rx="6" fill="${c}"/><rect x="44" y="10" width="30" height="38" rx="13" fill="${c}"/><circle cx="59" cy="29" r="8" fill="#9C7BD0"/><path d="M74 18 h8 a6 6 0 0 1 6 6 v18 a6 6 0 0 1 -6 6 h-8" fill="none" stroke="${D}" stroke-width="5"/>`,
+ robovac:c=>`<circle cx="60" cy="62" r="46" fill="${c}" stroke="${SV}" stroke-width="2"/><circle cx="60" cy="62" r="35" fill="none" stroke="${SV}" stroke-width="1.5"/><circle cx="60" cy="38" r="10" fill="${D}"/><circle cx="60" cy="38" r="4" fill="${SV}"/><rect x="50" y="80" width="20" height="5" rx="2.5" fill="${SV}"/>`,
+ purifier:c=>`<rect x="40" y="12" width="40" height="54" rx="20" fill="none" stroke="${c}" stroke-width="9"/><rect x="42" y="62" width="36" height="48" rx="6" fill="${c}"/><g fill="${D}" opacity=".22">${loop(24,i=>`<circle cx="${48+(i%4)*8}" cy="${70+Math.floor(i/4)*6.5}" r="1.6"/>`)}</g>`,
+ coffee:c=>`<rect x="30" y="14" width="60" height="92" rx="12" fill="${c}"/><rect x="36" y="20" width="48" height="24" rx="11" fill="${D}" opacity=".85"/><rect x="38" y="58" width="44" height="42" rx="4" fill="${D}" opacity=".9"/><rect x="50" y="78" width="20" height="18" rx="3" fill="${L}"/><rect x="58" y="58" width="4" height="9" fill="${SV}"/>`,
+ tumbler:c=>`<rect x="38" y="20" width="44" height="12" rx="4" fill="${SV}"/><rect x="62" y="4" width="5" height="18" rx="2" fill="${SV}"/><path d="M38 32 H82 L76 110 H44 Z" fill="${c}"/><path d="M80 44 h10 a8 8 0 0 1 8 8 v22 a8 8 0 0 1 -8 8 h-12" fill="none" stroke="${c}" stroke-width="7"/><rect x="45" y="38" width="6" height="64" rx="3" fill="${H}"/>`,
+ pot:c=>`<rect x="53" y="24" width="14" height="10" rx="4" fill="${D}"/><ellipse cx="60" cy="38" rx="42" ry="9" fill="${c}"/><rect x="6" y="54" width="14" height="8" rx="4" fill="${c}"/><rect x="100" y="54" width="14" height="8" rx="4" fill="${c}"/><path d="M18 44 H102 V82 a20 20 0 0 1 -20 20 H38 a20 20 0 0 1 -20 -20 Z" fill="${c}"/><path d="M18 74 H102 V82 a20 20 0 0 1 -20 20 H38 a20 20 0 0 1 -20 -20 Z" fill="${D}" opacity=".2"/>`,
+ mug:c=>`<path d="M82 48 h8 a10 10 0 0 1 10 10 v12 a10 10 0 0 1 -10 10 h-8" fill="none" stroke="${c}" stroke-width="8"/><path d="M30 34 H82 V94 a12 12 0 0 1 -12 12 H42 a12 12 0 0 1 -12 -12 Z" fill="${c}"/><ellipse cx="56" cy="34" rx="26" ry="5" fill="${D}" opacity=".35"/><rect x="34" y="40" width="6" height="56" rx="3" fill="${H}"/>`,
+ kettle:c=>`<path d="M80 48 q18 4 14 30 q-2 10 -12 12" fill="none" stroke="${c}" stroke-width="7"/><path d="M40 40 L24 30 L28 26 L46 36 Z" fill="${c}"/><path d="M34 104 L40 40 Q60 30 80 40 L86 104 Z" fill="${c}"/><rect x="52" y="28" width="16" height="8" rx="3" fill="${SV}"/><rect x="30" y="102" width="60" height="8" rx="3" fill="${SV}"/><rect x="48" y="60" width="24" height="8" rx="2" fill="${SV}"/>`,
+ ricecooker:c=>`<path d="M18 60 Q18 30 60 30 Q102 30 102 60 Z" fill="${c}" stroke="${SV}" stroke-width="1.5"/><rect x="18" y="58" width="84" height="44" rx="10" fill="${c}" stroke="${SV}" stroke-width="1.5"/><rect x="40" y="70" width="40" height="18" rx="4" fill="${D}"/><circle cx="50" cy="79" r="2.5" fill="#F0A93A"/><rect x="56" y="76" width="18" height="6" rx="1" fill="#7FD1E8"/><rect x="50" y="24" width="20" height="8" rx="4" fill="${SV}"/>`,
+ blender:c=>`<path d="M82 22 h8 a4 4 0 0 1 4 4 v28 a4 4 0 0 1 -4 4 h-12" fill="none" stroke="${D}" stroke-width="5"/><path d="M38 12 H82 L76 70 H44 Z" fill="#DDEBF2" opacity=".9" stroke="${SV}" stroke-width="1.5"/><rect x="36" y="8" width="48" height="8" rx="3" fill="${D}"/><path d="M47 46 H73 L71 68 H49 Z" fill="#7BC47F" opacity=".85"/><rect x="34" y="70" width="52" height="40" rx="8" fill="${c}"/><circle cx="60" cy="90" r="8" fill="${SV}"/>`,
+ toaster:c=>`<rect x="18" y="36" width="84" height="62" rx="10" fill="${c}"/><rect x="28" y="46" width="52" height="36" rx="4" fill="#3A3F4F"/><rect x="32" y="50" width="44" height="28" rx="2" fill="#F0B35A" opacity=".55"/><circle cx="91" cy="56" r="5" fill="${SV}"/><circle cx="91" cy="74" r="5" fill="${SV}"/><rect x="22" y="98" width="8" height="6" fill="${D}"/><rect x="90" y="98" width="8" height="6" fill="${D}"/>`,
+ mixer:c=>`<path d="M30 30 Q30 18 46 18 H86 Q100 18 100 32 Q100 46 86 46 H56 L56 92 H30 Z" fill="${c}"/><rect x="68" y="44" width="6" height="22" fill="${SV}"/><path d="M40 70 H92 L88 100 Q86 106 78 106 H54 Q46 106 44 100 Z" fill="${SV}"/><rect x="22" y="100" width="84" height="10" rx="4" fill="${c}"/>`,
+ sofa:c=>`<rect x="16" y="34" width="88" height="42" rx="10" fill="${c}"/><rect x="10" y="56" width="20" height="40" rx="8" fill="${c}"/><rect x="90" y="56" width="20" height="40" rx="8" fill="${c}"/><rect x="28" y="66" width="64" height="24" rx="6" fill="${H}"/><g fill="${D}"><rect x="18" y="96" width="5" height="10" rx="2"/><rect x="97" y="96" width="5" height="10" rx="2"/></g>`,
+ beanbag:c=>`<path d="M18 104 Q10 70 34 54 Q48 22 76 28 Q104 36 102 70 Q108 96 98 104 Z" fill="${c}"/><path d="M34 54 Q60 70 98 64" fill="none" stroke="${D}" stroke-opacity=".15" stroke-width="3"/><path d="M30 92 Q60 100 92 92" fill="none" stroke="${H}" stroke-width="3"/>`,
+ pendant:c=>`<line x1="60" y1="0" x2="60" y2="30" stroke="${D}" stroke-width="2"/><ellipse cx="60" cy="102" rx="40" ry="9" fill="#F7D774" opacity=".25"/><ellipse cx="60" cy="88" rx="16" ry="5" fill="#F7D774"/><g fill="${c}" stroke="${SV}" stroke-width="1.5"><path d="M16 80 Q60 52 104 80 L98 84 Q60 64 22 84 Z"/><path d="M26 62 Q60 38 94 62 L88 64 Q60 48 32 64 Z"/><path d="M38 44 Q60 26 82 44 Z"/></g>`,
+ candle:c=>`<rect x="30" y="40" width="60" height="66" rx="6" fill="${c}"/><ellipse cx="60" cy="40" rx="30" ry="6" fill="#EFE6D2"/><line x1="60" y1="40" x2="60" y2="30" stroke="${D}" stroke-width="2"/><path d="M60 12 Q68 24 60 30 Q52 24 60 12 Z" fill="#F2A93B"/><ellipse cx="60" cy="74" rx="18" ry="20" fill="${L}"/>`,
+ pillow:c=>`<path d="M14 40 Q60 28 106 40 Q112 60 106 82 Q60 94 14 82 Q8 60 14 40 Z" fill="${c}" stroke="${SV}" stroke-width="1.5"/><path d="M24 52 Q60 44 96 52" fill="none" stroke="${SV}" stroke-width="2"/>`,
+ plant:c=>`<g fill="${c}"><path d="M60 80 C40 70 26 52 34 30 C46 34 58 50 60 80Z"/><path d="M60 80 C78 66 94 52 88 28 C74 32 62 50 60 80Z"/><path d="M60 80 C56 60 52 40 60 14 C70 36 66 60 60 80Z"/></g><g stroke="${L}" stroke-opacity=".5" stroke-width="2"><path d="M42 48 L50 56 M80 44 L72 54 M58 34 L62 44"/></g><path d="M38 80 H82 L76 110 H44 Z" fill="#C88A5A"/>`,
+ diffuser:c=>`<path d="M34 100 Q34 60 60 52 Q86 60 86 100 Z" fill="${c}" stroke="${SV}" stroke-width="2"/><ellipse cx="60" cy="100" rx="28" ry="5" fill="${SV}"/><path d="M56 46 q-8 -10 0 -18 q8 -8 0 -18 M67 44 q-6 -8 0 -14" fill="none" stroke="${SV}" stroke-width="3" stroke-linecap="round"/>`,
+ chocobox:c=>`<rect x="16" y="42" width="88" height="58" rx="6" fill="${c}"/><rect x="13" y="36" width="94" height="16" rx="5" fill="${c}"/><rect x="13" y="46" width="94" height="4" fill="${D}" opacity=".12"/><rect x="54" y="36" width="12" height="64" fill="#8C2B2B"/><path d="M60 36 q-18 -16 -22 -4 q4 8 22 4 q18 -16 22 -4 q-4 8 -22 4" fill="#8C2B2B"/>`,
+ tin:c=>`<rect x="30" y="30" width="60" height="78" rx="6" fill="${c}"/><rect x="28" y="20" width="64" height="16" rx="5" fill="${c}"/><rect x="28" y="32" width="64" height="4" fill="${D}" opacity=".2"/><rect x="38" y="52" width="44" height="36" rx="3" fill="${L}" opacity=".9"/><path d="M48 70 h24" stroke="${c}" stroke-width="3"/>`,
+ pouch:c=>`<path d="M30 20 H90 L94 108 H26 Z" fill="${c}" stroke="${SV}" stroke-width="1.5"/><rect x="30" y="20" width="60" height="12" fill="${D}" opacity=".1"/><ellipse cx="60" cy="66" rx="10" ry="14" fill="#6B4A32"/><path d="M60 53 q-6 13 0 26" stroke="${L}" stroke-width="2" fill="none"/>`,
+ bottle:c=>`<path d="M52 8 H68 V34 Q84 44 84 64 V106 Q84 112 78 112 H42 Q36 112 36 106 V64 Q36 44 52 34 Z" fill="${c}"/><path d="M50 6 H70 V30 H50 Z" fill="#D9B44A"/><rect x="40" y="70" width="40" height="24" rx="2" fill="${L}"/><rect x="40" y="70" width="40" height="5" fill="#C8323A"/>`,
+ baijiu:c=>`<rect x="48" y="8" width="24" height="18" rx="3" fill="#C8323A"/><path d="M50 26 H70 V36 Q86 42 86 58 V104 Q86 112 78 112 H42 Q34 112 34 104 V58 Q34 42 50 36 Z" fill="${c}"/><rect x="40" y="62" width="40" height="30" rx="2" fill="#C8323A" opacity=".9"/><rect x="46" y="68" width="28" height="18" fill="${L}"/><path d="M60 26 L46 50 M60 26 L74 50" stroke="#C8323A" stroke-width="3"/>`,
+ cookietin:c=>`<ellipse cx="60" cy="88" rx="46" ry="16" fill="${c}"/><rect x="14" y="52" width="92" height="36" fill="${c}"/><rect x="14" y="66" width="92" height="6" fill="${L}" opacity=".7"/><ellipse cx="60" cy="52" rx="46" ry="16" fill="${c}"/><ellipse cx="60" cy="52" rx="40" ry="12" fill="${D}" opacity=".15"/><ellipse cx="60" cy="52" rx="20" ry="6" fill="#E8C774"/>`,
+ pint:c=>`<path d="M28 34 H92 L86 104 Q86 110 78 110 H42 Q34 110 34 104 Z" fill="${L}" stroke="${SV}" stroke-width="1.5"/><rect x="34" y="56" width="52" height="30" fill="${c}" opacity=".9"/><path d="M42 70 h36" stroke="#E8C774" stroke-width="3"/><rect x="26" y="26" width="68" height="8" fill="${c}"/><ellipse cx="60" cy="34" rx="34" ry="6" fill="${c}"/><ellipse cx="60" cy="26" rx="34" ry="8" fill="${c}"/>`,
+ snackpack:c=>`<path d="M12 40 L20 34 H100 L108 40 V86 L100 92 H20 L12 86 Z" fill="${c}"/><circle cx="46" cy="63" r="17" fill="#2A2524"/><circle cx="46" cy="63" r="12" fill="none" stroke="#4A403C" stroke-width="1.5"/><circle cx="70" cy="63" r="17" fill="#2A2524"/><circle cx="70" cy="63" r="12" fill="none" stroke="#4A403C" stroke-width="1.5"/><rect x="20" y="38" width="80" height="4" fill="${H}"/>`
+};
+const inner=(p,ci)=>ART[p.kind]?ART[p.kind](hexOf(p,ci||0)):"";
+const art=(p,ci)=>`<svg viewBox="0 0 120 120" aria-hidden="true">${inner(p,ci)}</svg>`;
+
+/* gallery pictures (200 x 125) */
+function sceneBg(cat){
+ const wall=`<rect width="200" height="125" class="sc-wall"/>`;
+ if(cat==="数码")return wall+`<rect y="100" width="200" height="6" fill="#CFA67B"/><rect y="106" width="200" height="19" fill="#B98F66"/><rect x="18" y="80" width="16" height="20" rx="2" fill="#E3D5C3"/><path d="M26 80 C16 68 18 58 26 52 C34 58 36 68 26 80Z" fill="#6E9E72"/><line x1="174" y1="100" x2="174" y2="62" stroke="#5A5F6B" stroke-width="2"/><path d="M162 62 H186 L180 50 H168 Z" fill="#E7C46A"/>`;
+ if(cat==="美妆")return wall+`<circle cx="100" cy="44" r="34" fill="#E6EEF3" stroke="#D9B44A" stroke-width="3"/><path d="M80 30 L92 22" stroke="#FFFFFF" stroke-width="3" opacity=".7"/><rect y="100" width="200" height="25" fill="#EEEAE5"/><path d="M8 112 q20 -6 40 2 t40 -2 t40 3 t40 -3" stroke="#D5CEC6" fill="none"/><rect x="22" y="84" width="10" height="16" rx="3" fill="#C9D6DF"/><circle cx="24" cy="78" r="5" fill="#E9A3B0"/><circle cx="31" cy="80" r="4" fill="#F3C6CF"/>`;
+ if(cat==="服饰")return wall+`<line x1="14" y1="14" x2="186" y2="14" stroke="#9A7B5A" stroke-width="3"/><path d="M26 14 v6 l-10 10 h28 l-10 -10" fill="none" stroke="#9A7B5A" stroke-width="1.5"/><rect x="16" y="30" width="28" height="56" rx="3" fill="#C9C2D6" opacity=".7"/><path d="M174 14 v6 l-10 10 h28 l-10 -10" fill="none" stroke="#9A7B5A" stroke-width="1.5"/><rect x="164" y="30" width="28" height="64" rx="3" fill="#BFD3C6" opacity=".7"/><rect y="100" width="200" height="25" fill="#D8C3A5"/>`;
+ if(cat==="运动")return `<rect width="200" height="125" fill="#CFE3F2"/><circle cx="164" cy="28" r="12" fill="#FFE08A"/><path d="M0 92 Q50 70 100 88 T200 82 V125 H0 Z" fill="#A8CF98"/><rect y="100" width="200" height="25" fill="#86B97C"/>`;
+ if(cat==="家居")return wall+`<rect x="128" y="12" width="54" height="60" rx="2" fill="#DCEBF5" stroke="#FFFFFF" stroke-width="4"/><line x1="155" y1="12" x2="155" y2="72" stroke="#FFFFFF" stroke-width="3"/><rect y="100" width="200" height="25" fill="#D9C2A2"/><ellipse cx="100" cy="112" rx="70" ry="8" fill="#E8B4A0" opacity=".6"/>`;
+ return wall+`<rect y="98" width="200" height="27" fill="#F4F1EA"/>${loop(10,i=>`<rect x="${i*20}" y="98" width="10" height="27" fill="#D9534F" opacity=".55"/>`)}<rect y="104" width="200" height="6" fill="#D9534F" opacity=".35"/><rect y="116" width="200" height="6" fill="#D9534F" opacity=".35"/>`;
+}
+function slides(p,ci){
+ const pr=inner(p,ci), nm=p.name.length>11?p.name.slice(0,11)+"…":p.name;
+ return [
+  ["主图",`<svg viewBox="0 0 200 125" aria-hidden="true"><svg x="45" y="7" width="110" height="110" viewBox="0 0 120 120">${pr}</svg></svg>`],
+  ["场景",`<svg viewBox="0 0 200 125" aria-hidden="true">${sceneBg(p.cat)}<svg x="60" y="30" width="80" height="80" viewBox="0 0 120 120">${pr}</svg></svg>`],
+  ["细节",`<svg viewBox="0 0 200 125" aria-hidden="true"><svg x="0" y="0" width="200" height="125" viewBox="30 28 60 60" preserveAspectRatio="xMidYMid slice">${pr}</svg><circle cx="174" cy="24" r="12" fill="none" stroke="#FFFFFF" stroke-width="3" opacity=".8"/><line x1="182" y1="33" x2="190" y2="41" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>`],
+  ["包装",`<svg viewBox="0 0 200 125" aria-hidden="true"><rect width="200" height="125" class="sc-wall"/><path d="M40 42 L56 26 H144 L160 42 Z" class="krd"/><rect x="40" y="42" width="120" height="72" class="kr"/><rect x="92" y="42" width="16" height="72" class="tapef"/><rect x="46" y="54" width="42" height="34" rx="2" fill="#F3EBDD"/><text x="50" y="64" font-size="5" fill="#5A4A36" font-family="Noto Sans SC,sans-serif">${esc(nm)}</text><text x="50" y="72" font-size="4.2" fill="#8A7A62" font-family="Noto Sans SC,sans-serif">过家家物流</text><text x="50" y="80" font-size="4.2" fill="#8A7A62" font-family="Noto Sans SC,sans-serif">小心轻放 · 易碎</text><svg x="114" y="48" width="40" height="40" viewBox="0 0 120 120" opacity=".9">${pr}</svg><circle cx="132" cy="100" r="9" fill="none" stroke="#C8323A" stroke-width="1.5"/><text x="132" y="102" text-anchor="middle" font-size="5" fill="#C8323A" font-family="Noto Sans SC,sans-serif">已验</text></svg>`]
+ ];
+}
+
+const TRUCK=`<svg viewBox="0 0 32 22" aria-hidden="true"><rect x="1" y="3" width="19" height="12" rx="2" class="kr"/><rect x="9" y="3" width="4" height="12" class="tapef"/><path d="M20 7 h5 l5 5 v3 h-10 z" class="tink"/><circle cx="7" cy="17" r="3" class="tink"/><circle cx="25" cy="17" r="3" class="tink"/></svg>`;
+const BOX=`<svg viewBox="0 0 160 110" aria-hidden="true"><rect width="160" height="110" rx="6" class="kr"/><rect width="160" height="12" class="krd"/><rect x="66" width="28" height="110" class="tapef"/><rect x="14" y="72" width="40" height="24" rx="3" fill="#F3EBDD"/><g stroke="#B9A88C" stroke-width="2"><line x1="20" y1="80" x2="48" y2="80"/><line x1="20" y1="87" x2="40" y2="87"/></g></svg>`;
+const LID=`<svg viewBox="0 0 176 32" aria-hidden="true"><rect width="176" height="32" rx="5" class="krd"/><rect x="74" width="28" height="32" class="tapef"/></svg>`;
+const ICON={
+ shop:'<path d="M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>',
+ cart:'<path d="M3 4h2l2.2 10.5a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',
+ track:'<path d="M3 7.5L12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5l9 4.5 9-4.5M12 12v9"/>',
+ me:'<path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/>'
+};
+
+/* ---------- time ---------- */
+const HR=3600e3, DAY=24*HR, COOL=7*DAY, ACCEL=720;
+const SPEEDS={flash:{name:"闪电达",sub:"1 分钟",ms:60e3},today:{name:"当日达",sub:"2 小时",ms:2*HR},std:{name:"标准",sub:"2 天",ms:2*DAY}};
+const STAGES=[{t:0,label:"已下单",place:"过家家云仓"},{t:.12,label:"已出库",place:"梦境分拣中心"},{t:.4,label:"运输中",place:"星河干线"},{t:.82,label:"派送中",place:"你家楼下"},{t:1,label:"已送达",place:"门口"}];
+const now=()=>Date.now();
+const dur=o=>{const ms=SPEEDS[o.speed].ms;return (S.fast&&o.speed!=="flash")?Math.max(30e3,ms/ACCEL):ms};
+const prog=o=>Math.min(1,Math.max(0,(now()-o.placedAt)/dur(o)));
+const coolDur=()=>S.fast?COOL/ACCEL:COOL;
+const coolLeft=x=>x.at+coolDur()-now();
+const pad=n=>String(n).padStart(2,"0");
+function fmtDur(ms){ms=Math.max(0,ms);const s=Math.ceil(ms/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),sec=s%60;
+ if(d)return `${d} 天 ${h} 时`; if(h)return `${h} 时 ${m} 分`; if(m)return `${m} 分 ${sec} 秒`; return `${sec} 秒`;}
+function whenText(t){const d=new Date(t),n=new Date(),hm=`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+ const day=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime(); const diff=Math.round((day(d)-day(n))/DAY);
+ if(diff===0)return "今天 "+hm; if(diff===1)return "明天 "+hm; return `${d.getMonth()+1}月${d.getDate()}日 ${hm}`;}
+const fmt=n=>n.toLocaleString("zh-CN");
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ---------- state ---------- */
+const KEY="gjj-state-v2";
+function fresh(){const t=now();return{cart:[],fast:true,saved:528,unboxCount:1,
+ orders:[{no:"GJJ2611110328",items:[{id:"quench",qty:1,ci:0}],total:329,speed:"std",placedAt:t-110e3,unboxed:false,demo:true}],
+ owned:[{id:"fleece",qty:1,ci:0,at:t-COOL-60e3,demo:true}]};}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.cart)&&Array.isArray(s.orders))return s;}catch(e){}return fresh();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let S=load();
+S.cart=S.cart.filter(i=>BY[i.id]);S.orders.forEach(o=>o.items=o.items.filter(i=>BY[i.id]));S.owned=S.owned.filter(x=>BY[x.id]);
+let tab="shop",cat="全部",q="",lastSig="",chk=null,resetArm=false,cur=null;
+
+/* ---------- elements ---------- */
+const $=id=>document.getElementById(id);
+const view=$("view"),sheetWrap=$("sheetWrap"),sheet=$("sheet");
+
+function renderChips(){$("chips").innerHTML=CATS.map(c=>`<button class="chip-btn" data-cat="${c}" aria-pressed="${c===cat}">${c}</button>`).join("");}
+function renderTabs(){
+ const n=S.cart.reduce((a,i)=>a+i.qty,0), ready=S.orders.filter(o=>prog(o)>=1&&!o.unboxed).length;
+ const T=[["shop","逛逛",0],["cart","购物车",n],["track","快递",ready],["me","我的",0]];
+ $("tabs").innerHTML=T.map(([k,l,b])=>`<button class="tab" data-tab="${k}" ${tab===k?'aria-current="page"':""}><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}${b?`<span class="badge">${b}</span>`:""}</button>`).join("");
+ $("savedPill").textContent="¥"+fmt(S.saved);
+}
+
+/* shop */
+function shopList(){const k=q.trim().toLowerCase();return P.filter(p=>(cat==="全部"||p.cat===cat)&&(!k||(p.name+p.blurb+p.real+p.desc).toLowerCase().includes(k)));}
+function card(p){return `<button class="card" data-open="${p.id}"><div class="art">${art(p,0)}${p.was?'<span class="flag">返场</span>':""}${p.colors.length>1?`<span class="dots-c">${p.colors.slice(0,4).map(c=>`<i style="background:${c[1]}"></i>`).join("")}</span>`:""}</div><div class="nm">${esc(p.name)}</div><div class="row"><span class="tag"><small>¥</small>${fmt(p.price)}</span>${p.was?`<s>¥${fmt(p.was)}</s>`:""}</div><div class="meta">${p.sold} 人买过</div></button>`;}
+function renderShop(){const l=shopList();view.innerHTML=l.length?`<div class="count">${cat==="全部"&&!q?"":esc(cat)+" · "}${l.length} 件</div><div class="grid">${l.map(card).join("")}</div>`:`<div class="none">没找到，换个词试试</div>`;}
+
+/* cart */
+const EMPTY=`<svg viewBox="0 0 160 120" aria-hidden="true"><path d="M20 50 L80 30 L140 50 L80 70 Z" class="krd"/><path d="M20 50 L80 70 V112 L20 92 Z" class="kr"/><path d="M140 50 L80 70 V112 L140 92 Z" class="kr" opacity=".85"/><path d="M20 50 L4 70 L64 90 L80 70 Z" class="kr"/><path d="M140 50 L156 70 L96 90 L80 70 Z" class="kr" opacity=".85"/></svg>`;
+function renderCart(){
+ if(!S.cart.length){view.innerHTML=`<h2 class="sec-title">购物车</h2><div class="empty">${EMPTY}<div>空空的</div><button class="btn sm" data-tab="shop">去逛逛</button></div>`;return;}
+ const total=S.cart.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
+ view.innerHTML=`<h2 class="sec-title">购物车</h2>${S.cart.map((i,k)=>{const p=BY[i.id];return `<div class="line"><div class="art" data-open="${p.id}" style="cursor:pointer">${art(p,i.ci)}</div><div><div class="nm">${esc(p.name)}</div><div class="meta">${esc(colorName(p,i.ci))}</div><span class="tag"><small>¥</small>${fmt(p.price)}</span></div><div class="step"><button data-dec="${k}" aria-label="减一件">−</button><span>${i.qty}</span><button data-inc="${k}" aria-label="加一件">+</button></div></div>`}).join("")}
+ <div class="sum"><div><div class="label">合计</div><div class="total">¥${fmt(total)}</div></div><button class="btn" style="flex:none" data-checkout="cart">去结算</button></div>`;
+}
+
+/* track */
+function stageOf(p){let c=0;STAGES.forEach((s,i)=>{if(p>=s.t)c=i});return c;}
+function parcel(o){
+ const p=prog(o),c=stageOf(p),done=p>=1;
+ const st=!done?`<span class="st go">${STAGES[c].label}</span>`:o.unboxed?`<span class="st">已拆箱</span>`:`<span class="st done">待拆箱</span>`;
+ return `<article class="parcel" data-no="${o.no}"><div class="p-head"><span class="no">${o.no}</span>${o.demo?'<span class="demo">示例</span>':""}${st}</div>
+ <div class="thumbs">${o.items.map(i=>`<div class="art">${art(BY[i.id],i.ci)}</div>`).join("")}</div>
+ <div class="bar"><i style="width:${p*100}%"></i><b class="truck" style="left:${p*100}%">${TRUCK}</b></div>
+ <ol class="stages">${STAGES.map((s,i)=>`<li class="${i<=c?"done":""}">${s.label}</li>`).join("")}</ol>
+ <p class="where">${whereText(o)}</p>
+ ${done&&!o.unboxed?`<button class="btn wide" data-unbox="${o.no}">拆箱</button>`:""}</article>`;
+}
+function whereText(o){const p=prog(o),c=stageOf(p);return p<1?`<b>${STAGES[c].place}</b> · 还要 ${fmtDur(o.placedAt+dur(o)-now())}`:o.unboxed?`已收进家当`:`<b>到门口了</b> · 去拆吧`;}
+function renderTrack(){view.innerHTML=`<h2 class="sec-title">快递</h2>`+(S.orders.length?S.orders.map(parcel).join(""):`<div class="empty">${EMPTY}<div>还没有包裹</div><button class="btn sm" data-tab="shop">去逛逛</button></div>`);}
+
+/* me */
+function jarSvg(){const lv=S.saved<=0?0:Math.max(.08,Math.min(1,Math.log10(S.saved)/6)),h=Math.round(72*lv);let edges="";for(let y=104;y>104-h;y-=8)edges+=`<ellipse cx="48" cy="${y}" rx="27" ry="3" class="coin-edge"/>`;
+ return `<svg viewBox="0 0 96 112" aria-hidden="true"><defs><clipPath id="jc"><path d="M20 26 h56 v70 a10 10 0 0 1 -10 10 h-36 a10 10 0 0 1 -10 -10z"/></clipPath></defs><rect x="24" y="6" width="48" height="13" rx="4" class="lidc"/><path d="M18 22 h60 v74 a12 12 0 0 1 -12 12 h-36 a12 12 0 0 1 -12 -12z" class="glass"/><g clip-path="url(#jc)"><rect x="18" y="${108-h}" width="60" height="${h}" class="coins"/>${edges}</g></svg>`;}
+function ownCard(x,i){const p=BY[x.id],left=coolLeft(x),f=Math.min(1,1-left/coolDur());
+ const tail=x.enough?`<div class="keep">有这个就够了</div>`:left>0?`<div class="cool"><span>冷静中</span><b data-cool="${i}">${fmtDur(left)}</b></div><div class="coolbar"><i data-coolbar="${i}" style="width:${f*100}%"></i></div>`:`<button class="btn sm" data-real="${i}">还想要真的？</button>`;
+ return `<div class="own"><div class="art" data-open="${p.id}" style="cursor:pointer">${art(p,x.ci)}</div><div class="nm">${esc(p.name)}${x.qty>1?` ×${x.qty}`:""}</div>${x.demo?'<span class="demo" style="align-self:flex-start">示例</span>':""}${tail}</div>`;}
+function renderMe(){
+ view.innerHTML=`<h2 class="sec-title">我的</h2>
+ <section class="jar">${jarSvg()}<div><div class="label">一共省下</div><div class="big">¥${fmt(S.saved)}</div><div class="subline">下单 ${S.orders.length} 次 · 拆箱 ${S.unboxCount} 个</div></div></section>
+ <h3>家当 <small>${S.owned.reduce((a,x)=>a+x.qty,0)} 件</small></h3>
+ <p class="hint">到手七天还惦记，再去买真的。</p>
+ ${S.owned.length?`<div class="owned">${S.owned.map(ownCard).join("")}</div>`:`<div class="none">拆了箱的东西会摆在这里</div>`}
+ <h3>设置</h3>
+ <div class="setrow"><div><b>体验模式</b><p>时间快 720 倍，快递几分钟到，冷静期十几分钟满</p></div><button class="sw" role="switch" aria-checked="${S.fast}" aria-label="体验模式" data-fast></button></div>
+ <button class="btn ghost wide reset" data-reset>${resetArm?"再点一次，全部清空":"清空重来"}</button>`;
+}
+
+/* ---------- views ---------- */
+function sig(){return tab+"|"+S.fast+"|"+S.orders.map(o=>o.no+(prog(o)>=1?1:0)+(o.unboxed?1:0)).join()+"|"+S.owned.map(x=>(coolLeft(x)>0?0:1)+(x.enough?1:0)).join();}
+function render(){
+ $("shopTools").hidden=tab!=="shop";
+ if(tab==="shop")renderShop(); else if(tab==="cart")renderCart(); else if(tab==="track")renderTrack(); else renderMe();
+ renderTabs(); lastSig=sig();
+}
+function live(){
+ if(tab==="track"){S.orders.forEach(o=>{const el=view.querySelector(`[data-no="${o.no}"]`);if(!el)return;const p=prog(o),c=stageOf(p);
+  el.querySelector(".bar i").style.width=p*100+"%";el.querySelector(".truck").style.left=p*100+"%";
+  el.querySelectorAll(".stages li").forEach((li,i)=>li.classList.toggle("done",i<=c));el.querySelector(".where").innerHTML=whereText(o);});}
+ if(tab==="me"){S.owned.forEach((x,i)=>{const b=view.querySelector(`[data-cool="${i}"]`),bar=view.querySelector(`[data-coolbar="${i}"]`);if(b)b.textContent=fmtDur(coolLeft(x));if(bar)bar.style.width=Math.min(1,1-coolLeft(x)/coolDur())*100+"%";});}
+}
+function setTab(t){tab=t;window.scrollTo(0,0);render();}
+
+/* ---------- sheets ---------- */
+function setSheet(body,foot,keepScroll){const old=sheet.querySelector(".sh-body"),top=keepScroll&&old?old.scrollTop:0;
+ sheet.innerHTML=`<div class="sh-body${foot?" has-foot":""}"><div class="grab"></div>${body}</div>${foot?`<div class="sh-foot">${foot}</div>`:""}`;
+ const nb=sheet.querySelector(".sh-body");nb.scrollTop=top;}
+function openSheet(body,foot){setSheet(body,foot);sheetWrap.hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>sheetWrap.classList.add("show")));setTimeout(()=>sheet.focus({preventScroll:true}),60);}
+function closeSheet(){sheetWrap.classList.remove("show");setTimeout(()=>{sheetWrap.hidden=true;sheet.innerHTML="";},300);chk=null;cur=null;}
+let toastT;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800);}
+
+function compareSet(p){let g=P.filter(x=>x.group===p.group&&x.id!==p.id);if(!g.length)g=P.filter(x=>x.cat===p.cat&&x.id!==p.id).sort((a,b)=>Math.abs(a.price-p.price)-Math.abs(b.price-p.price)).slice(0,2);return g.slice(0,3);}
+const AVC=["#E2793A","#3D7BE0","#169E70","#B36AD6","#EE3F6B","#C79661","#2F8F9D","#7A6CE0"];
+function stars(n){return `<span class="stars" aria-label="${n} 星">${"★".repeat(n)}<b>${"★".repeat(5-n)}</b></span>`;}
+function review(r){const h=[...r.nick].reduce((a,ch)=>a+ch.charCodeAt(0),0);
+ return `<div class="rv"><div class="av" style="background:${AVC[h%AVC.length]}">${esc([...r.nick][0]||"客")}</div><div><div class="rv-top"><b>${esc(r.nick)}</b>${stars(r.stars)}</div><div class="rv-meta">${esc(r.ago||"")}${r.color?" · "+esc(r.color):""}</div><p>${esc(r.text)}</p>${r.follow?`<div class="follow"><em>追评</em>${esc(r.follow)}</div>`:""}</div></div>`;}
+function productBody(){const p=BY[cur.id],ci=cur.ci,o=compareSet(p),sl=slides(p,ci);
+ const row=(x,me)=>{const d=x.price-p.price;return `<tr class="${me?"me":""}" ${me?"":`data-open="${x.id}"`}><td>${esc(x.name)}</td><td class="n">¥${fmt(x.price)}${me?"":`<span class="d ${d>0?"up":"down"}">${d>0?"贵":"省"} ¥${fmt(Math.abs(d))}</span>`}</td><td class="n">★ ${x.rating.toFixed(1)}</td><td class="n">${x.sold}</td></tr>`};
+ return `<div class="gal" id="gal">${sl.map(([lab,svg])=>`<div class="slide">${svg}<span class="lab">${lab}</span></div>`).join("")}</div>
+ <div class="gdots" id="gdots">${sl.map((_,i)=>`<i class="${i===0?"on":""}"></i>`).join("")}</div>
+ <h2>${esc(p.name)}</h2><p class="blurb">${esc(p.blurb)} · ★ ${p.rating.toFixed(1)} · ${p.sold} 人买过</p>
+ <div class="pricebar"><span class="tag big"><small>¥</small>${fmt(p.price)}</span>${p.was?`<s>¥${fmt(p.was)}</s><span class="flag" style="position:static">返场价</span>`:""}</div>
+ ${p.colors.length>1?`<div class="swatches"><span>颜色：${esc(colorName(p,ci))}</span>${p.colors.map((c,i)=>`<button class="swc" style="background:${c[1]}" data-ci="${i}" aria-pressed="${i===ci}" aria-label="${esc(c[0])}"></button>`).join("")}</div>`:""}
+ <h3>详情</h3><p class="desc">${esc(p.desc)}</p>${p.points.length?`<ul class="points">${p.points.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:""}
+ ${p.specs.length?`<h3>参数</h3><table class="specs"><tbody>${p.specs.map(([k,v])=>`<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join("")}</tbody></table>`:""}
+ <h3>比一比</h3><div class="cmp-wrap"><table class="cmp"><thead><tr><th>商品</th><th>价格</th><th>评分</th><th>买过</th></tr></thead><tbody>${row(p,true)}${o.map(x=>row(x,false)).join("")}</tbody></table></div>
+ ${p.reviews.length?`<h3>买家评价 <small>${p.sold} 条</small></h3><div class="rv-head"><div class="rv-score">${p.rating.toFixed(1)}</div><div>${stars(Math.round(p.rating))}<div class="rv-note">评价为虚构，商品名均为谐音</div></div></div>${p.reviews.map(review).join("")}`:""}`;}
+const productFoot=()=>`<button class="btn ghost" data-add>加入购物车</button><button class="btn" data-buy>立即买</button>`;
+function wireGallery(){const g=$("gal"),d=$("gdots");if(!g||!d)return;g.addEventListener("scroll",()=>{const i=Math.round(g.scrollLeft/g.clientWidth);d.querySelectorAll("i").forEach((x,k)=>x.classList.toggle("on",k===i));},{passive:true});}
+function openProduct(id){cur={id,ci:0};openSheet(productBody(),productFoot());wireGallery();}
+function pickColor(ci){if(!cur)return;cur.ci=ci;setSheet(productBody(),productFoot(),true);wireGallery();}
+
+function checkoutBody(){const total=chk.items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
+ return `<h2>结算</h2><ul class="mini">${chk.items.map(i=>`<li><span>${esc(BY[i.id].name)}${i.qty>1?` ×${i.qty}`:""} <small>${esc(colorName(BY[i.id],i.ci))}</small></span><span>¥${fmt(BY[i.id].price*i.qty)}</span></li>`).join("")}</ul>
+ <h3>怎么送</h3><div class="opts" role="radiogroup" aria-label="配送方式">${Object.entries(SPEEDS).map(([k,v])=>`<button class="opt" role="radio" aria-checked="${chk.speed===k}" data-speed="${k}"><b>${v.name}</b><small>${v.sub}</small></button>`).join("")}</div>
+ <div class="pay"><div class="cardface" id="cardface"><div class="t">过家家卡<b>∞</b></div><div><div class="num">6222 •••• •••• 1111</div><div class="lim">额度无限 · 不扣一分钱</div></div></div><div class="reader" id="reader"><span>刷这里</span><i></i></div></div>
+ <p class="fine">不收真卡号，也不花真钱</p>`;}
+const checkoutFoot=()=>{const total=chk.items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);return `<button class="btn wide" id="payBtn" data-pay>刷卡 ¥${fmt(total)}</button>`;};
+function openCheckout(items,fromCart){chk={items,fromCart,speed:chk&&chk.speed||"today"};openSheet(checkoutBody(),checkoutFoot());}
+function beep(){try{const A=window.AudioContext||window.webkitAudioContext,a=new A(),o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.value=1320;g.gain.setValueAtTime(.0001,a.currentTime);g.gain.exponentialRampToValueAtTime(.12,a.currentTime+.01);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.16);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.18);setTimeout(()=>a.close(),400);}catch(e){}}
+function pay(){const btn=$("payBtn");if(!btn||btn.disabled)return;btn.disabled=true;
+ const c=chk;$("cardface").classList.add("swipe");
+ setTimeout(()=>{beep();const r=$("reader");if(r)r.classList.add("ok");},430);
+ setTimeout(()=>{const t=now(),d=new Date(t),total=c.items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
+  const o={no:`GJJ${String(d.getFullYear()).slice(2)}${pad(d.getMonth()+1)}${pad(d.getDate())}${Math.floor(1000+Math.random()*9000)}`,items:c.items.map(i=>({id:i.id,qty:i.qty,ci:i.ci||0})),total,speed:c.speed,placedAt:t,unboxed:false};
+  S.orders.unshift(o);S.saved+=total;if(c.fromCart)S.cart=[];save();renderTabs();if(tab!=="shop")render();
+  setSheet(`<div class="ok-title">刷好了</div><div class="receipt">
+  <div class="r-row"><span>订单号</span><b>${o.no}</b></div><div class="r-row"><span>标价</span><b>¥${fmt(total)}</b></div><div class="r-row"><span>实付</span><b>¥0</b></div>
+  <div class="r-row big"><span>又省下</span><b>¥${fmt(total)}</b></div><div class="r-row"><span>${SPEEDS[o.speed].name} · 预计</span><b>${whenText(t+dur(o))}</b></div></div>`,
+  `<button class="btn ghost" data-close>接着逛</button><button class="btn" data-go="track">看快递</button>`);chk=null;},1000);}
+
+function openUnbox(no){const o=S.orders.find(x=>x.no===no);if(!o)return;
+ openSheet(`<h2 style="text-align:center">包裹到了</h2><div class="stage" id="stage"><div class="glow"></div><div class="pop ${o.items.length>1?"many":""}">${o.items.slice(0,3).map(i=>art(BY[i.id],i.ci)).join("")}</div><div class="boxf">${BOX}</div><div class="lid">${LID}</div></div>
+ <div class="unbox-before"><button class="btn wide" data-dounbox="${no}">拆！</button></div>
+ <div class="unbox-after" hidden><p>${o.items.map(i=>esc(BY[i.id].name)+(i.qty>1?` ×${i.qty}`:"")).join("、")}</p><button class="btn wide" data-keep="${no}">收进家当</button></div>`);}
+function doUnbox(){const st=$("stage");if(!st||st.classList.contains("open"))return;st.classList.add("open");sheet.querySelector(".unbox-before").hidden=true;
+ const rm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;setTimeout(()=>{const a=sheet.querySelector(".unbox-after");if(a)a.hidden=false;},rm?0:1000);}
+function keep(no){const o=S.orders.find(x=>x.no===no);if(!o||o.unboxed)return;o.unboxed=true;S.unboxCount++;const t=now();
+ o.items.forEach(i=>S.owned.unshift({id:i.id,qty:i.qty,ci:i.ci||0,at:t}));save();closeSheet();toast("收进家当了");render();}
+
+function openReal(i){const x=S.owned[i];if(!x)return;const p=BY[x.id],code="GJJ-"+Math.random().toString(36).slice(2,6).toUpperCase();
+ openSheet(`<div class="sh-art">${art(p,x.ci)}</div><h2>冷静了七天，还惦记</h2><p class="blurb">那就是真喜欢。真货叫 ${esc(p.real)}。</p>
+ <div class="coupon"><span class="pct">9折</span><b>${code}</b><small>示例券，将来由商家出</small></div>`,
+ `<button class="btn ghost" data-enough="${i}">有这个就够</button><a class="btn" href="https://www.amazon.com/s?k=${encodeURIComponent(p.real)}" target="_blank" rel="noopener">去看真的</a>`);}
+
+function addToCart(id,ci){const c=S.cart.find(i=>i.id===id&&(i.ci||0)===ci);c?c.qty++:S.cart.push({id,qty:1,ci});save();renderTabs();}
+
+/* ---------- actions ---------- */
+document.addEventListener("click",e=>{
+ const t=e.target.closest("[data-open],[data-add],[data-buy],[data-close],[data-tab],[data-cat],[data-inc],[data-dec],[data-checkout],[data-speed],[data-pay],[data-go],[data-unbox],[data-dounbox],[data-keep],[data-real],[data-enough],[data-fast],[data-reset],[data-ci]");
+ if(!t)return;const d=t.dataset;
+ if(d.open){openProduct(d.open);}
+ else if(d.ci!==undefined){pickColor(+d.ci);}
+ else if("add" in d){if(cur){addToCart(cur.id,cur.ci);closeSheet();toast("放进购物车了");}}
+ else if("buy" in d){if(cur)openCheckout([{id:cur.id,qty:1,ci:cur.ci}],false);}
+ else if("close" in d){closeSheet();}
+ else if(d.tab){setTab(d.tab);}
+ else if(d.cat){cat=d.cat;renderChips();renderShop();}
+ else if(d.inc!==undefined){const c=S.cart[+d.inc];if(c)c.qty++;save();render();}
+ else if(d.dec!==undefined){const c=S.cart[+d.dec];if(c){c.qty--;if(c.qty<=0)S.cart.splice(+d.dec,1);}save();render();}
+ else if(d.checkout){if(S.cart.length)openCheckout(S.cart.map(i=>({...i})),true);}
+ else if(d.speed){if(chk){chk.speed=d.speed;setSheet(checkoutBody(),checkoutFoot(),true);}}
+ else if("pay" in d){pay();}
+ else if(d.go){closeSheet();setTab(d.go);}
+ else if(d.unbox){openUnbox(d.unbox);}
+ else if(d.dounbox){doUnbox();}
+ else if(d.keep){keep(d.keep);}
+ else if(d.real!==undefined){openReal(+d.real);}
+ else if(d.enough!==undefined){const x=S.owned[+d.enough];if(x)x.enough=true;save();closeSheet();render();}
+ else if("fast" in d){S.fast=!S.fast;save();render();toast(S.fast?"体验模式开了":"回到真实时间");}
+ else if("reset" in d){if(!resetArm){resetArm=true;render();setTimeout(()=>{if(resetArm){resetArm=false;if(tab==="me")render();}},4000);}else{resetArm=false;S=fresh();save();render();toast("清空了，重新开始");}}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!sheetWrap.hidden)closeSheet();});
+$("q").addEventListener("input",e=>{q=e.target.value;renderShop();});
+
+renderChips();render();
+function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(BY[h])openProduct(h);}
+window.addEventListener("hashchange",fromHash);fromHash();
+setInterval(()=>{const s=sig();if(s!==lastSig){if(tab!=="shop")render();else{renderTabs();lastSig=s;}}else live();},1000);
+})();
+</script>
