@@ -11,9 +11,12 @@ src = (here / 'src' / 'app.html').read_text(encoding='utf-8')
 base = json.loads((here / 'data' / 'base.json').read_text(encoding='utf-8'))
 cpath = here / 'data' / 'content.json'
 content = json.loads(cpath.read_text(encoding='utf-8')) if cpath.exists() else {}
+qpath = here / 'data' / 'qa.json'
+qa = json.loads(qpath.read_text(encoding='utf-8')) if qpath.exists() else {}
 
 data = ('const BASE=' + json.dumps(base, ensure_ascii=False, separators=(',', ':')) + ';\n'
-        'const CONTENT=' + json.dumps(content, ensure_ascii=False, separators=(',', ':')) + ';')
+        'const CONTENT=' + json.dumps(content, ensure_ascii=False, separators=(',', ':')) + ';\n'
+        'const QA=' + json.dumps(qa, ensure_ascii=False, separators=(',', ':')) + ';')
 assert src.count('/*__DATA__*/') == 1
 artifact = src.replace('/*__DATA__*/', data.replace('</', '<\\/'))
 (here / 'prototype.html').write_text(artifact, encoding='utf-8')
@@ -36,5 +39,5 @@ page = artifact.replace('<meta name="claude:viewport-fit-sides" content="cover">
 split = page.index('</style>') + len('</style>')
 page = head + page[:split] + '\n</head>\n<body>\n' + page[split:].lstrip() + '\n</body>\n</html>\n'
 (here / 'index.html').write_text(page, encoding='utf-8')
-print('products', len(base), 'with copy', sum(1 for b in base if b['id'] in content),
+print('products', len(base), 'with copy', sum(1 for b in base if b['id'] in content), 'with qa', len(qa),
       '| prototype', len(artifact), '| index', len(page))

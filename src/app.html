@@ -276,11 +276,56 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:40;max-width:calc(100% - 32px)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
+/* product page */
+.pbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:10px;background:var(--bg);padding-block:10px}
+.ptitle{flex:1;min-width:0;text-align:center;font-weight:500;color:var(--muted);font-size:14px}
+.icon-btn{all:unset;cursor:pointer;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:var(--surface);border:1px solid var(--line);flex:none}
+.icon-btn svg,.pf-ic svg,.like svg{stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn svg{width:20px;height:20px}
+.icon-btn:focus-visible,.pf-ic:focus-visible,.like:focus-visible,.ask:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[data-fav][aria-pressed="true"]{color:var(--accent)}
+[data-fav][aria-pressed="true"] svg{fill:var(--accent)}
+.tabs-in.pf{grid-template-columns:auto auto minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center;padding-block:8px}
+.pf-ic{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--muted);padding:0 6px;position:relative;min-width:36px}
+.pf-ic svg{width:22px;height:22px}
+.pf .btn{min-height:44px;padding-inline:10px;font-size:14px}
+.favmark{position:absolute;top:8px;right:8px;width:20px;height:20px;fill:var(--accent);stroke:var(--accent)}
+.sec-head{display:flex;align-items:baseline;gap:8px;margin:26px 0 10px}
+.sec-head h3{margin:0}
+.sec-head .btn{margin-left:auto}
+.sec-head .note{margin-left:auto;font-size:12px;color:var(--muted)}
+.like{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);margin-top:8px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);font-family:var(--f-num)}
+.like svg{width:14px;height:14px}
+.like[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.like[aria-pressed="true"] svg{fill:var(--accent)}
+.mine{font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:0 5px;margin-left:6px;font-weight:400}
+.rv-act{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.del{all:unset;cursor:pointer;font-size:12px;color:var(--muted);margin-top:8px}
+.qa{padding:12px 0;border-bottom:1px solid var(--line)}
+.qa:last-child{border-bottom:0}
+.qa-q{display:flex;gap:8px;font-weight:500;font-size:14px}
+.qa-q i,.qa-a i{font-style:normal;flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:700}
+.qa-q i{background:var(--tag);color:var(--tag-ink)}
+.qa-a{display:flex;gap:8px;font-size:13px;margin-top:8px;color:var(--ink)}
+.qa-a i{background:var(--tile);color:var(--muted)}
+.qa-a small{color:var(--muted)}
+.qa-meta{font-size:12px;color:var(--muted);margin:4px 0 0 28px}
+.qa-wait{font-size:12px;color:var(--muted);margin:6px 0 0 28px}
+.ask{all:unset;cursor:pointer;font-size:12px;color:var(--accent);margin:6px 0 0 28px}
+.starpick{display:flex;gap:8px;justify-content:center;margin:14px 0}
+.starpick button{all:unset;cursor:pointer;font-size:34px;line-height:1;color:var(--line)}
+.starpick button[aria-pressed="true"]{color:var(--tag)}
+.field{width:100%;min-height:120px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;padding:10px 12px;resize:vertical;display:block}
+.field:focus{outline:none;border-color:var(--accent)}
+.minip{display:flex;gap:12px;align-items:center}
+.minip .art{width:56px;border-radius:12px;flex:none}
+.small-link{all:unset;cursor:pointer;font-size:12px;color:var(--accent)}
+
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;transition-delay:0s!important}}
 </style>
 
 <div class="app">
-  <header class="top">
+  <header class="top" id="top">
     <div class="brand">
       <div class="logo">赛博<i>过家家</i></div>
       <div class="saved-pill">已省<b id="savedPill">¥0</b></div>
@@ -459,12 +504,13 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;","
 
 /* ---------- state ---------- */
 const KEY="gjj-state-v2";
-function fresh(){const t=now();return{cart:[],fast:true,saved:528,unboxCount:1,
+function fresh(){const t=now();return{cart:[],fast:true,saved:528,unboxCount:1,favs:[],likes:{},myReviews:[],myQs:[],myAns:[],
  orders:[{no:"GJJ2611110328",items:[{id:"quench",qty:1,ci:0}],total:329,speed:"std",placedAt:t-110e3,unboxed:false,demo:true}],
  owned:[{id:"fleece",qty:1,ci:0,at:t-COOL-60e3,demo:true}]};}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.cart)&&Array.isArray(s.orders))return s;}catch(e){}return fresh();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 let S=load();
+["favs","myReviews","myQs","myAns"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!S.likes||typeof S.likes!=="object")S.likes={};
 S.cart=S.cart.filter(i=>BY[i.id]);S.orders.forEach(o=>o.items=o.items.filter(i=>BY[i.id]));S.owned=S.owned.filter(x=>BY[x.id]);
 let tab="shop",cat="全部",q="",lastSig="",chk=null,resetArm=false,cur=null;
 
@@ -473,16 +519,24 @@ const $=id=>document.getElementById(id);
 const view=$("view"),sheetWrap=$("sheetWrap"),sheet=$("sheet");
 
 function renderChips(){$("chips").innerHTML=CATS.map(c=>`<button class="chip-btn" data-cat="${c}" aria-pressed="${c===cat}">${c}</button>`).join("");}
+const SV_BACK='<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>';
+const SV_HEART='<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+const SV_THUMB='<svg viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2.2 2.6L12.6 10H18a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 16.8 20H7"/></svg>';
+const isFav=id=>S.favs.includes(id);
 function renderTabs(){
  const n=S.cart.reduce((a,i)=>a+i.qty,0), ready=S.orders.filter(o=>prog(o)>=1&&!o.unboxed).length;
- const T=[["shop","逛逛",0],["cart","购物车",n],["track","快递",ready],["me","我的",0]];
- $("tabs").innerHTML=T.map(([k,l,b])=>`<button class="tab" data-tab="${k}" ${tab===k?'aria-current="page"':""}><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}${b?`<span class="badge">${b}</span>`:""}</button>`).join("");
  $("savedPill").textContent="¥"+fmt(S.saved);
+ const ti=$("tabs");
+ if(cur){ti.className="tabs-in pf";
+  ti.innerHTML=`<button class="pf-ic" data-fav="${cur.id}" aria-pressed="${isFav(cur.id)}">${SV_HEART}收藏</button><button class="pf-ic" data-tab="cart"><svg viewBox="0 0 24 24">${ICON.cart}</svg>购物车${n?`<span class="badge" style="left:calc(50% + 4px)">${n}</span>`:""}</button><button class="btn ghost" data-add>加入购物车</button><button class="btn" data-buy>立即买</button>`;return;}
+ ti.className="tabs-in";
+ const T=[["shop","逛逛",0],["cart","购物车",n],["track","快递",ready],["me","我的",0]];
+ ti.innerHTML=T.map(([k,l,b])=>`<button class="tab" data-tab="${k}" ${tab===k?'aria-current="page"':""}><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}${b?`<span class="badge">${b}</span>`:""}</button>`).join("");
 }
 
 /* shop */
 function shopList(){const k=q.trim().toLowerCase();return P.filter(p=>(cat==="全部"||p.cat===cat)&&(!k||(p.name+p.blurb+p.real+p.desc).toLowerCase().includes(k)));}
-function card(p){return `<button class="card" data-open="${p.id}"><div class="art">${art(p,0)}${p.was?'<span class="flag">返场</span>':""}${p.colors.length>1?`<span class="dots-c">${p.colors.slice(0,4).map(c=>`<i style="background:${c[1]}"></i>`).join("")}</span>`:""}</div><div class="nm">${esc(p.name)}</div><div class="row"><span class="tag"><small>¥</small>${fmt(p.price)}</span>${p.was?`<s>¥${fmt(p.was)}</s>`:""}</div><div class="meta">${p.sold} 人买过</div></button>`;}
+function card(p){return `<button class="card" data-open="${p.id}"><div class="art">${art(p,0)}${p.was?'<span class="flag">返场</span>':""}${isFav(p.id)?`<svg class="favmark" viewBox="0 0 24 24" aria-label="已收藏"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>`:""}${p.colors.length>1?`<span class="dots-c">${p.colors.slice(0,4).map(c=>`<i style="background:${c[1]}"></i>`).join("")}</span>`:""}</div><div class="nm">${esc(p.name)}</div><div class="row"><span class="tag"><small>¥</small>${fmt(p.price)}</span>${p.was?`<s>¥${fmt(p.was)}</s>`:""}</div><div class="meta">${p.sold} 人买过</div></button>`;}
 function renderShop(){const l=shopList();view.innerHTML=l.length?`<div class="count">${cat==="全部"&&!q?"":esc(cat)+" · "}${l.length} 件</div><div class="grid">${l.map(card).join("")}</div>`:`<div class="none">没找到，换个词试试</div>`;}
 
 /* cart */
@@ -514,13 +568,18 @@ function jarSvg(){const lv=S.saved<=0?0:Math.max(.08,Math.min(1,Math.log10(S.sav
  return `<svg viewBox="0 0 96 112" aria-hidden="true"><defs><clipPath id="jc"><path d="M20 26 h56 v70 a10 10 0 0 1 -10 10 h-36 a10 10 0 0 1 -10 -10z"/></clipPath></defs><rect x="24" y="6" width="48" height="13" rx="4" class="lidc"/><path d="M18 22 h60 v74 a12 12 0 0 1 -12 12 h-36 a12 12 0 0 1 -12 -12z" class="glass"/><g clip-path="url(#jc)"><rect x="18" y="${108-h}" width="60" height="${h}" class="coins"/>${edges}</g></svg>`;}
 function ownCard(x,i){const p=BY[x.id],left=coolLeft(x),f=Math.min(1,1-left/coolDur());
  const tail=x.enough?`<div class="keep">有这个就够了</div>`:left>0?`<div class="cool"><span>冷静中</span><b data-cool="${i}">${fmtDur(left)}</b></div><div class="coolbar"><i data-coolbar="${i}" style="width:${f*100}%"></i></div>`:`<button class="btn sm" data-real="${i}">还想要真的？</button>`;
- return `<div class="own"><div class="art" data-open="${p.id}" style="cursor:pointer">${art(p,x.ci)}</div><div class="nm">${esc(p.name)}${x.qty>1?` ×${x.qty}`:""}</div>${x.demo?'<span class="demo" style="align-self:flex-start">示例</span>':""}${tail}</div>`;}
+ const rv=reviewed(p.id)?`<span class="meta">已评价</span>`:`<button class="small-link" data-write="${p.id}" data-wci="${x.ci||0}">写评价</button>`;
+ return `<div class="own"><div class="art" data-open="${p.id}" style="cursor:pointer">${art(p,x.ci)}</div><div class="nm">${esc(p.name)}${x.qty>1?` ×${x.qty}`:""}</div><div class="row">${x.demo?'<span class="demo">示例</span>':""}${rv}</div>${tail}</div>`;}
+const reviewed=id=>S.myReviews.some(r=>r.id===id);
+const owns=id=>S.owned.find(x=>x.id===id);
 function renderMe(){
  view.innerHTML=`<h2 class="sec-title">我的</h2>
- <section class="jar">${jarSvg()}<div><div class="label">一共省下</div><div class="big">¥${fmt(S.saved)}</div><div class="subline">下单 ${S.orders.length} 次 · 拆箱 ${S.unboxCount} 个</div></div></section>
+ <section class="jar">${jarSvg()}<div><div class="label">一共省下</div><div class="big">¥${fmt(S.saved)}</div><div class="subline">下单 ${S.orders.length} 次 · 拆箱 ${S.unboxCount} 个 · 评价 ${S.myReviews.length} 条</div></div></section>
  <h3>家当 <small>${S.owned.reduce((a,x)=>a+x.qty,0)} 件</small></h3>
  <p class="hint">到手七天还惦记，再去买真的。</p>
  ${S.owned.length?`<div class="owned">${S.owned.map(ownCard).join("")}</div>`:`<div class="none">拆了箱的东西会摆在这里</div>`}
+ <h3>收藏 <small>${S.favs.length} 件</small></h3>
+ ${S.favs.length?`<div class="grid">${S.favs.filter(id=>BY[id]).map(id=>card(BY[id])).join("")}</div>`:`<div class="none">在商品页点心形就能收藏</div>`}
  <h3>设置</h3>
  <div class="setrow"><div><b>体验模式</b><p>时间快 720 倍，快递几分钟到，冷静期十几分钟满</p></div><button class="sw" role="switch" aria-checked="${S.fast}" aria-label="体验模式" data-fast></button></div>
  <button class="btn ghost wide reset" data-reset>${resetArm?"再点一次，全部清空":"清空重来"}</button>`;
@@ -529,31 +588,49 @@ function renderMe(){
 /* ---------- views ---------- */
 function sig(){return tab+"|"+S.fast+"|"+S.orders.map(o=>o.no+(prog(o)>=1?1:0)+(o.unboxed?1:0)).join()+"|"+S.owned.map(x=>(coolLeft(x)>0?0:1)+(x.enough?1:0)).join();}
 function render(){
- $("shopTools").hidden=tab!=="shop";
- if(tab==="shop")renderShop(); else if(tab==="cart")renderCart(); else if(tab==="track")renderTrack(); else renderMe();
- renderTabs(); lastSig=sig();
+ $("top").hidden=!!cur; $("shopTools").hidden=!!cur||tab!=="shop";
+ if(cur)view.innerHTML=productPage();
+ else if(tab==="shop")renderShop(); else if(tab==="cart")renderCart(); else if(tab==="track")renderTrack(); else renderMe();
+ renderTabs(); lastSig=sig(); if(cur)wireGallery();
 }
+function rerenderKeep(){const y=window.scrollY;render();window.scrollTo(0,y);}
 function live(){
  if(tab==="track"){S.orders.forEach(o=>{const el=view.querySelector(`[data-no="${o.no}"]`);if(!el)return;const p=prog(o),c=stageOf(p);
   el.querySelector(".bar i").style.width=p*100+"%";el.querySelector(".truck").style.left=p*100+"%";
   el.querySelectorAll(".stages li").forEach((li,i)=>li.classList.toggle("done",i<=c));el.querySelector(".where").innerHTML=whereText(o);});}
  if(tab==="me"){S.owned.forEach((x,i)=>{const b=view.querySelector(`[data-cool="${i}"]`),bar=view.querySelector(`[data-coolbar="${i}"]`);if(b)b.textContent=fmtDur(coolLeft(x));if(bar)bar.style.width=Math.min(1,1-coolLeft(x)/coolDur())*100+"%";});}
 }
-function setTab(t){tab=t;window.scrollTo(0,0);render();}
+function setTab(t){if(cur){cur=null;navDepth=0;if(location.hash)location.hash="";}tab=t;window.scrollTo(0,0);render();}
 
 /* ---------- sheets ---------- */
 function setSheet(body,foot,keepScroll){const old=sheet.querySelector(".sh-body"),top=keepScroll&&old?old.scrollTop:0;
  sheet.innerHTML=`<div class="sh-body${foot?" has-foot":""}"><div class="grab"></div>${body}</div>${foot?`<div class="sh-foot">${foot}</div>`:""}`;
  const nb=sheet.querySelector(".sh-body");nb.scrollTop=top;}
 function openSheet(body,foot){setSheet(body,foot);sheetWrap.hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>sheetWrap.classList.add("show")));setTimeout(()=>sheet.focus({preventScroll:true}),60);}
-function closeSheet(){sheetWrap.classList.remove("show");setTimeout(()=>{sheetWrap.hidden=true;sheet.innerHTML="";},300);chk=null;cur=null;}
+function closeSheet(){sheetWrap.classList.remove("show");setTimeout(()=>{sheetWrap.hidden=true;sheet.innerHTML="";},300);chk=null;}
 let toastT;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800);}
 
 function compareSet(p){let g=P.filter(x=>x.group===p.group&&x.id!==p.id);if(!g.length)g=P.filter(x=>x.cat===p.cat&&x.id!==p.id).sort((a,b)=>Math.abs(a.price-p.price)-Math.abs(b.price-p.price)).slice(0,2);return g.slice(0,3);}
 const AVC=["#E2793A","#3D7BE0","#169E70","#B36AD6","#EE3F6B","#C79661","#2F8F9D","#7A6CE0"];
 function stars(n){return `<span class="stars" aria-label="${n} 星">${"★".repeat(n)}<b>${"★".repeat(5-n)}</b></span>`;}
-function review(r){const h=[...r.nick].reduce((a,ch)=>a+ch.charCodeAt(0),0);
- return `<div class="rv"><div class="av" style="background:${AVC[h%AVC.length]}">${esc([...r.nick][0]||"客")}</div><div><div class="rv-top"><b>${esc(r.nick)}</b>${stars(r.stars)}</div><div class="rv-meta">${esc(r.ago||"")}${r.color?" · "+esc(r.color):""}</div><p>${esc(r.text)}</p>${r.follow?`<div class="follow"><em>追评</em>${esc(r.follow)}</div>`:""}</div></div>`;}
+const hashStr=t=>[...t].reduce((a,ch)=>(a*31+ch.charCodeAt(0))>>>0,7);
+function agoText(t){const d=now()-t;if(d<60e3)return "刚刚";if(d<HR)return Math.floor(d/60e3)+" 分钟前";if(d<DAY)return Math.floor(d/HR)+" 小时前";return Math.floor(d/DAY)+" 天前";}
+function likeBtn(rid,base){const on=!!S.likes[rid];return `<button class="like" data-like="${rid}" data-base="${base}" aria-pressed="${on}" aria-label="有用">${SV_THUMB}<span>${base+(on?1:0)}</span></button>`;}
+function review(r,rid,base,mine){const h=hashStr(r.nick);
+ return `<div class="rv"><div class="av" style="background:${AVC[h%AVC.length]}">${esc([...r.nick][0]||"客")}</div><div><div class="rv-top"><b>${esc(r.nick)}${mine?'<span class="mine">我的</span>':""}</b>${stars(r.stars)}</div><div class="rv-meta">${esc(r.ago||"")}${r.color?" · "+esc(r.color):""}</div><p>${esc(r.text)}</p>${r.follow?`<div class="follow"><em>追评</em>${esc(r.follow)}</div>`:""}<div class="rv-act">${likeBtn(rid,base)}${mine?`<button class="del" data-delrv="${mine}">删除</button>`:""}</div></div></div>`;}
+function reviewsSection(p){const mine=S.myReviews.filter(r=>r.id===p.id),o=owns(p.id);
+ const act=o&&!mine.length?`<button class="btn sm" data-write="${p.id}" data-wci="${o.ci||0}">写评价</button>`:(!o?`<span class="note">收到包裹后能写评价</span>`:"");
+ return `<div class="sec-head"><h3>买家评价 <small>${p.sold} 条</small></h3>${act}</div><div class="rv-head"><div class="rv-score">${p.rating.toFixed(1)}</div><div>${stars(Math.round(p.rating))}<div class="rv-note">示例评价为虚构，商品名均为谐音</div></div></div>`+
+  mine.map(r=>review({nick:"我",stars:r.stars,ago:agoText(r.at),color:colorName(p,r.ci),text:r.text},"me:"+r.at,0,r.at)).join("")+
+  p.reviews.map((r,i)=>review(r,p.id+":"+i,3+hashStr(p.id+i)%160)).join("");}
+function answerHtml(a,mine){return `<div class="qa-a"><i>答</i><div>${esc(a.text)} <small>${mine?"我":esc(a.nick)}${a.color?" · "+esc(a.color):""}</small></div></div>`;}
+function qaItem(p,qkey,q,nick,ago,answers){const o=owns(p.id),mineA=S.myAns.filter(a=>a.qkey===qkey);
+ const all=answers.map(a=>answerHtml(a,false)).join("")+mineA.map(a=>answerHtml({text:a.text,color:colorName(p,a.ci)},true)).join("");
+ return `<div class="qa"><div class="qa-q"><i>问</i><div>${esc(q)}</div></div><div class="qa-meta">${esc(nick)} · ${esc(ago)}</div>${all||'<div class="qa-wait">等收到包裹的人来答</div>'}${o&&!mineA.length?`<button class="ask" data-ans="${qkey}" data-pid="${p.id}">我来答</button>`:""}</div>`;}
+function qaSection(p){const qs=QA[p.id]||[],mq=S.myQs.filter(x=>x.id===p.id);
+ return `<div class="sec-head"><h3>问大家 <small>${qs.length+mq.length} 个问题</small></h3><button class="btn sm ghost" data-askq="${p.id}">提问</button></div>`+
+  mq.map(x=>qaItem(p,"me:"+x.at,x.text,"我",agoText(x.at),[])).join("")+
+  qs.map((x,i)=>qaItem(p,p.id+":q"+i,x.q,x.nick,x.ago,x.answers||[])).join("");}
 function productBody(){const p=BY[cur.id],ci=cur.ci,o=compareSet(p),sl=slides(p,ci);
  const row=(x,me)=>{const d=x.price-p.price;return `<tr class="${me?"me":""}" ${me?"":`data-open="${x.id}"`}><td>${esc(x.name)}</td><td class="n">¥${fmt(x.price)}${me?"":`<span class="d ${d>0?"up":"down"}">${d>0?"贵":"省"} ¥${fmt(Math.abs(d))}</span>`}</td><td class="n">★ ${x.rating.toFixed(1)}</td><td class="n">${x.sold}</td></tr>`};
  return `<div class="gal" id="gal">${sl.map(([lab,svg])=>`<div class="slide">${svg}<span class="lab">${lab}</span></div>`).join("")}</div>
@@ -564,11 +641,22 @@ function productBody(){const p=BY[cur.id],ci=cur.ci,o=compareSet(p),sl=slides(p,
  <h3>详情</h3><p class="desc">${esc(p.desc)}</p>${p.points.length?`<ul class="points">${p.points.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:""}
  ${p.specs.length?`<h3>参数</h3><table class="specs"><tbody>${p.specs.map(([k,v])=>`<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join("")}</tbody></table>`:""}
  <h3>比一比</h3><div class="cmp-wrap"><table class="cmp"><thead><tr><th>商品</th><th>价格</th><th>评分</th><th>买过</th></tr></thead><tbody>${row(p,true)}${o.map(x=>row(x,false)).join("")}</tbody></table></div>
- ${p.reviews.length?`<h3>买家评价 <small>${p.sold} 条</small></h3><div class="rv-head"><div class="rv-score">${p.rating.toFixed(1)}</div><div>${stars(Math.round(p.rating))}<div class="rv-note">评价为虚构，商品名均为谐音</div></div></div>${p.reviews.map(review).join("")}`:""}`;}
-const productFoot=()=>`<button class="btn ghost" data-add>加入购物车</button><button class="btn" data-buy>立即买</button>`;
+ ${reviewsSection(p)}${qaSection(p)}`;}
+function productPage(){return `<div class="pbar"><button class="icon-btn" data-back aria-label="返回">${SV_BACK}</button><div class="ptitle">商品详情</div><button class="icon-btn" data-fav="${cur.id}" aria-pressed="${isFav(cur.id)}" aria-label="收藏">${SV_HEART}</button></div>`+productBody();}
 function wireGallery(){const g=$("gal"),d=$("gdots");if(!g||!d)return;g.addEventListener("scroll",()=>{const i=Math.round(g.scrollLeft/g.clientWidth);d.querySelectorAll("i").forEach((x,k)=>x.classList.toggle("on",k===i));},{passive:true});}
-function openProduct(id){cur={id,ci:0};openSheet(productBody(),productFoot());wireGallery();}
-function pickColor(ci){if(!cur)return;cur.ci=ci;setSheet(productBody(),productFoot(),true);wireGallery();}
+let listY=0,navDepth=0,draft=null;
+function openProduct(id){if(!sheetWrap.hidden)closeSheet();if(decodeURIComponent(location.hash.slice(1))===id){showProduct(id);return;}navDepth++;location.hash=id;}
+function showProduct(id){if(!cur)listY=window.scrollY;cur={id,ci:0};render();window.scrollTo(0,0);}
+function leaveProduct(){if(!cur)return;cur=null;render();window.scrollTo(0,listY);}
+function goBack(){if(navDepth>0&&history.length>1){navDepth--;history.back();}else{navDepth=0;location.hash="";}}
+function pickColor(ci){if(!cur)return;cur.ci=ci;rerenderKeep();}
+function miniProduct(p,ci){return `<div class="minip"><div class="art">${art(p,ci)}</div><div><div class="nm" style="min-height:0">${esc(p.name)}</div><div class="meta">${esc(colorName(p,ci))}</div></div></div>`;}
+function openWrite(id,ci){const p=BY[id];draft={id,ci,stars:5};
+ openSheet(`<h2>写评价</h2>${miniProduct(p,ci)}<div class="starpick">${[1,2,3,4,5].map(n=>`<button data-star="${n}" aria-pressed="true" aria-label="${n} 星">★</button>`).join("")}</div><textarea class="field" id="rvText" maxlength="300" placeholder="说说手感、颜色，或者拆箱那一下"></textarea>`,`<button class="btn wide" data-post>发表</button>`);}
+function openAsk(id){const p=BY[id];draft={id};
+ openSheet(`<h2>问问买过的人</h2>${miniProduct(p,0)}<textarea class="field" id="qText" style="margin-top:14px" maxlength="120" placeholder="比如：颜色和图片差得多吗"></textarea><p class="fine">收到这件包裹的人能来回答</p>`,`<button class="btn wide" data-postq>提问</button>`);}
+function openAnswer(pid,qkey,qtext){const p=BY[pid];draft={id:pid,qkey};
+ openSheet(`<h2>我来答</h2><div class="qa-q" style="margin:10px 0 14px"><i>问</i><div>${esc(qtext)}</div></div><textarea class="field" id="aText" maxlength="200" placeholder="说说你用下来的感受"></textarea>`,`<button class="btn wide" data-posta>回答</button>`);}
 
 function checkoutBody(){const total=chk.items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
  return `<h2>结算</h2><ul class="mini">${chk.items.map(i=>`<li><span>${esc(BY[i.id].name)}${i.qty>1?` ×${i.qty}`:""} <small>${esc(colorName(BY[i.id],i.ci))}</small></span><span>¥${fmt(BY[i.id].price*i.qty)}</span></li>`).join("")}</ul>
@@ -607,11 +695,22 @@ function addToCart(id,ci){const c=S.cart.find(i=>i.id===id&&(i.ci||0)===ci);c?c.
 
 /* ---------- actions ---------- */
 document.addEventListener("click",e=>{
- const t=e.target.closest("[data-open],[data-add],[data-buy],[data-close],[data-tab],[data-cat],[data-inc],[data-dec],[data-checkout],[data-speed],[data-pay],[data-go],[data-unbox],[data-dounbox],[data-keep],[data-real],[data-enough],[data-fast],[data-reset],[data-ci]");
+ const t=e.target.closest("[data-open],[data-add],[data-buy],[data-close],[data-tab],[data-cat],[data-inc],[data-dec],[data-checkout],[data-speed],[data-pay],[data-go],[data-unbox],[data-dounbox],[data-keep],[data-real],[data-enough],[data-fast],[data-reset],[data-ci],[data-back],[data-fav],[data-like],[data-write],[data-star],[data-post],[data-delrv],[data-askq],[data-postq],[data-ans],[data-posta]");
  if(!t)return;const d=t.dataset;
  if(d.open){openProduct(d.open);}
  else if(d.ci!==undefined){pickColor(+d.ci);}
- else if("add" in d){if(cur){addToCart(cur.id,cur.ci);closeSheet();toast("放进购物车了");}}
+ else if("back" in d){goBack();}
+ else if(d.fav){const id=d.fav,on=!isFav(id);S.favs=on?[id,...S.favs]:S.favs.filter(x=>x!==id);save();document.querySelectorAll(`[data-fav="${id}"]`).forEach(b=>b.setAttribute("aria-pressed",on));toast(on?"收藏了":"取消收藏");}
+ else if(d.like){const on=!S.likes[d.like];if(on)S.likes[d.like]=1;else delete S.likes[d.like];save();t.setAttribute("aria-pressed",on);t.querySelector("span").textContent=(+d.base)+(on?1:0);}
+ else if(d.write){openWrite(d.write,+(d.wci||0));}
+ else if(d.star){if(draft){draft.stars=+d.star;sheet.querySelectorAll("[data-star]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.star<=draft.stars));}}
+ else if("post" in d){const x=($("rvText")||{}).value||"";if(x.trim().length<2){toast("多写几个字吧");return;}S.myReviews.unshift({id:draft.id,ci:draft.ci,stars:draft.stars,text:x.trim(),at:now()});save();closeSheet();toast("评价发好了");rerenderKeep();}
+ else if(d.delrv){if(t.dataset.armed){S.myReviews=S.myReviews.filter(r=>String(r.at)!==d.delrv);save();toast("删了");rerenderKeep();}else{t.dataset.armed=1;t.textContent="再点一次删除";setTimeout(()=>{if(t.isConnected){delete t.dataset.armed;t.textContent="删除";}},3000);}}
+ else if(d.askq){openAsk(d.askq);}
+ else if("postq" in d){const x=($("qText")||{}).value||"";if(x.trim().length<2){toast("多写几个字吧");return;}S.myQs.unshift({id:draft.id,text:x.trim(),at:now()});save();closeSheet();toast("问题发出去了");rerenderKeep();}
+ else if(d.ans){const qa=t.closest(".qa"),qt=qa?qa.querySelector(".qa-q div").textContent:"";openAnswer(d.pid,d.ans,qt);}
+ else if("posta" in d){const x=($("aText")||{}).value||"";if(x.trim().length<2){toast("多写几个字吧");return;}const o=owns(draft.id);S.myAns.push({qkey:draft.qkey,pid:draft.id,text:x.trim(),ci:o?o.ci||0:0,at:now()});save();closeSheet();toast("回答好了");rerenderKeep();}
+ else if("add" in d){if(cur){addToCart(cur.id,cur.ci);toast("放进购物车了");}}
  else if("buy" in d){if(cur)openCheckout([{id:cur.id,qty:1,ci:cur.ci}],false);}
  else if("close" in d){closeSheet();}
  else if(d.tab){setTab(d.tab);}
@@ -634,8 +733,8 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!sheetWrap.hidden)c
 $("q").addEventListener("input",e=>{q=e.target.value;renderShop();});
 
 renderChips();render();
-function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(BY[h])openProduct(h);}
-window.addEventListener("hashchange",fromHash);fromHash();
-setInterval(()=>{const s=sig();if(s!==lastSig){if(tab!=="shop")render();else{renderTabs();lastSig=s;}}else live();},1000);
+window.addEventListener("hashchange",()=>{const h=decodeURIComponent(location.hash.slice(1));if(!sheetWrap.hidden)closeSheet();if(BY[h])showProduct(h);else{navDepth=0;leaveProduct();}});
+{const h=decodeURIComponent(location.hash.slice(1));if(BY[h])showProduct(h);}
+setInterval(()=>{if(cur)return;const s=sig();if(s!==lastSig){if(tab!=="shop")render();else{renderTabs();lastSig=s;}}else live();},1000);
 })();
 </script>
