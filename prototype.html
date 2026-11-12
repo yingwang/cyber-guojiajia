@@ -1,0 +1,520 @@
+<title>赛博过家家</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@500;700&family=ZCOOL+KuaiLe&display=swap">
+<style>
+/* Layout: one phone-width column. Sticky shop header (search + aisles), a two-up shelf of toy-tagged goods,
+   a fixed four-tab bar, and bottom sheets for product, checkout, unboxing. Kraft parcels and yellow price tags carry the identity. */
+:root{
+  --bg:#EDF0F6; --surface:#FFFFFF; --tile:#E1E7F1; --ink:#17203A; --muted:#5C6684; --line:#D2D9E6;
+  --accent:#EE3F6B; --accent-ink:#FFFFFF; --tag:#FFC93A; --tag-ink:#2B2100; --kraft:#C79661; --kraft-dark:#9A6E3E; --ok:#169E70;
+  --scrim:rgba(10,14,24,.45);
+  --f-display:"ZCOOL KuaiLe","Noto Sans SC",system-ui,sans-serif;
+  --f-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --f-num:"Space Grotesk","Noto Sans SC",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F131D; --surface:#181E2D; --tile:#222A3D; --ink:#ECEFF7; --muted:#98A1BB; --line:#2B3349;
+  --accent:#FF5C86; --accent-ink:#FFFFFF; --tag:#FFD153; --tag-ink:#2B2100; --kraft:#B78852; --kraft-dark:#8B6236; --ok:#31BE8C;
+  --scrim:rgba(0,0,0,.6); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0F131D; --surface:#181E2D; --tile:#222A3D; --ink:#ECEFF7; --muted:#98A1BB; --line:#2B3349;
+  --accent:#FF5C86; --accent-ink:#FFFFFF; --tag:#FFD153; --tag-ink:#2B2100; --kraft:#B78852; --kraft-dark:#8B6236; --ok:#31BE8C;
+  --scrim:rgba(0,0,0,.6); color-scheme:dark }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button{font:inherit;color:inherit}
+.app{max-width:520px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 calc(96px + env(safe-area-inset-bottom,0px))}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{font-family:var(--f-display);font-size:28px;line-height:1;letter-spacing:1px}
+.logo i{font-style:normal;color:var(--accent)}
+.saved-pill{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px;white-space:nowrap}
+.saved-pill b{font-family:var(--f-num);color:var(--ink);font-size:13px;margin-left:4px}
+.search{display:flex;align-items:center;gap:8px;margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 12px;height:42px}
+.search:focus-within{border-color:var(--accent)}
+.search svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2;flex:none}
+.search input{border:0;outline:0;background:transparent;color:var(--ink);font:inherit;flex:1;min-width:0;height:100%}
+.search input::placeholder{color:var(--muted)}
+.chips{display:flex;gap:8px;overflow-x:auto;margin-top:10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip-btn{flex:none;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:5px 14px;font-size:14px}
+.chip-btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* shelf */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px;padding-top:6px}
+.card{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:18px}
+.art{aspect-ratio:1;max-width:100%;background:var(--tile);border-radius:18px;display:grid;place-items:center;overflow:hidden;position:relative}
+.art svg{width:76%;height:76%}
+.flag{position:absolute;top:8px;left:8px;font-size:11px;font-weight:700;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:1px 7px}
+.nm{font-size:14px;font-weight:500;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{position:relative;display:inline-flex;align-items:baseline;background:var(--tag);color:var(--tag-ink);font-family:var(--f-num);font-weight:700;font-size:16px;line-height:1.3;padding:2px 10px 2px 17px;border-radius:4px 9px 9px 4px;font-variant-numeric:tabular-nums}
+.tag::before{content:"";position:absolute;left:6px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:var(--bg)}
+.sheet .tag::before{background:var(--surface)}
+.tag small{font-size:11px;font-weight:500;margin-right:1px}
+.tag.big{font-size:24px;padding:4px 14px 4px 22px}
+.tag.big::before{left:8px;width:8px;height:8px;margin-top:-4px}
+s{color:var(--muted);font-family:var(--f-num);font-size:12px}
+.meta{font-size:12px;color:var(--muted)}
+.none{padding:48px 0;text-align:center;color:var(--muted)}
+
+/* tab bar */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs-in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tab{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 0;font-size:12px;color:var(--muted);position:relative}
+.tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.tab[aria-current="page"]{color:var(--ink);font-weight:700}
+.tab[aria-current="page"] svg{stroke:var(--accent)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:10px}
+.badge{position:absolute;top:3px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-family:var(--f-num);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+
+/* sheets */
+.sheet-wrap{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;transition:opacity .25s}
+.sheet{position:relative;width:100%;max-width:520px;max-height:92%;overflow:auto;background:var(--surface);color:var(--ink);border-radius:22px 22px 0 0;padding-block:10px calc(22px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);outline:none}
+.sheet-wrap.show .scrim{opacity:1}
+.sheet-wrap.show .sheet{transform:none}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.sh-art{background:var(--tile);border-radius:20px;aspect-ratio:16/10;max-width:100%;display:grid;place-items:center}
+.sh-art svg{height:82%;width:auto;max-width:100%}
+h2{font-family:var(--f-display);font-weight:400;font-size:25px;line-height:1.25;margin:14px 0 4px;text-wrap:balance}
+h3{font-size:15px;margin:22px 0 8px;display:flex;align-items:baseline;gap:8px}
+h3 small{font-weight:400;color:var(--muted);font-size:13px}
+.blurb{margin:0;color:var(--muted)}
+.pricebar{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.cmp-wrap{overflow-x:auto}
+table.cmp{width:100%;border-collapse:collapse;font-size:13px}
+.cmp th{font-weight:500;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.cmp td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.cmp td.n{font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cmp tr.me td{background:var(--tile)}
+.cmp tr.me td:first-child{border-radius:10px 0 0 10px}
+.cmp tr.me td:last-child{border-radius:0 10px 10px 0}
+.cmp tr[data-open]{cursor:pointer}
+.cmp .d{display:block;font-size:11px}
+.cmp .up{color:var(--accent)}
+.cmp .down{color:var(--ok)}
+.actions{display:flex;gap:10px;margin-top:20px}
+.btn{appearance:none;border:0;cursor:pointer;font-weight:700;border-radius:14px;padding:11px 18px;background:var(--accent);color:var(--accent-ink);flex:1;text-align:center;text-decoration:none;display:inline-flex;justify-content:center;align-items:center;gap:6px;min-height:46px;font-size:15px}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.sm{min-height:34px;padding:5px 12px;font-size:13px;border-radius:10px;flex:none}
+.btn.wide{width:100%;flex:none}
+.btn[disabled]{opacity:.6;cursor:default}
+.btn:focus-visible,.chip-btn:focus-visible,.opt:focus-visible,.sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* cart */
+.line{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.line .art{border-radius:12px}
+.line .nm{min-height:0}
+.step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.step button{all:unset;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;font-size:18px}
+.step span{min-width:22px;text-align:center;font-family:var(--f-num)}
+.sum{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:14px 14px 14px 18px;background:var(--surface);border-radius:18px;border:1px solid var(--line)}
+.sum .total{font-family:var(--f-num);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.sum .label{font-size:12px;color:var(--muted)}
+.empty{text-align:center;padding:56px 0 16px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:14px}
+.empty svg{width:120px;height:auto}
+
+/* checkout */
+.mini{list-style:none;margin:0;padding:0}
+.mini li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:14px}
+.mini li span:last-child{font-family:var(--f-num);white-space:nowrap}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.opt{all:unset;cursor:pointer;border:1.5px solid var(--line);border-radius:12px;padding:9px 10px;display:flex;flex-direction:column;gap:1px;min-width:0}
+.opt b{font-size:14px}
+.opt small{color:var(--muted);font-size:12px}
+.opt[aria-checked="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.pay{position:relative;height:168px;margin-top:18px}
+.cardface{position:absolute;top:0;left:50%;margin-left:-110px;width:220px;height:134px;border-radius:16px;padding:14px 16px;color:var(--accent-ink);background:linear-gradient(135deg,var(--accent),#FF8B55 58%,var(--tag));display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 10px 24px rgba(23,32,58,.18);z-index:1}
+.cardface .t{display:flex;justify-content:space-between;align-items:flex-start;font-family:var(--f-display);font-size:18px}
+.cardface .t b{font-family:var(--f-num);font-size:30px;line-height:.9}
+.cardface .num{font-family:var(--f-num);letter-spacing:2px;font-size:15px}
+.cardface .lim{font-size:11px;opacity:.9}
+.cardface.swipe{animation:swipe .95s ease-in-out}
+@keyframes swipe{0%{transform:translateY(0)}45%{transform:translateY(62px)}100%{transform:translateY(0)}}
+.reader{position:absolute;bottom:0;left:50%;margin-left:-125px;width:250px;height:50px;background:var(--ink);border-radius:12px 12px 16px 16px;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 16px;color:var(--bg);font-size:12px}
+.reader::before{content:"";position:absolute;top:7px;left:18px;right:18px;height:4px;border-radius:2px;background:var(--bg);opacity:.35}
+.reader i{width:11px;height:11px;border-radius:50%;background:var(--tag);transition:background .2s,box-shadow .2s}
+.reader.ok i{background:var(--ok);box-shadow:0 0 12px var(--ok)}
+.fine{font-size:12px;color:var(--muted);text-align:center;margin:10px 0 0}
+.ok-title{font-family:var(--f-display);font-size:28px;text-align:center;margin:8px 0 12px}
+.receipt{background:var(--bg);border-radius:14px 14px 0 0;padding:14px 16px 18px;position:relative;margin-bottom:16px}
+.receipt::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:radial-gradient(circle at 7px 10px,var(--surface) 6px,var(--bg) 6.5px) 0 0/14px 10px repeat-x}
+.r-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.r-row:last-child{border-bottom:0}
+.r-row span{color:var(--muted)}
+.r-row b{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-weight:500}
+.r-row.big b{font-size:24px;font-weight:700;color:var(--accent)}
+
+/* parcels */
+.sec-title{font-family:var(--f-display);font-weight:400;font-size:22px;margin:10px 0 4px}
+.parcel{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:12px;overflow:hidden}
+.parcel::before{content:"";position:absolute;top:0;bottom:0;right:28px;width:30px;background:var(--kraft);opacity:.16}
+.p-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative}
+.no{font-family:var(--f-num);font-size:13px;color:var(--muted);letter-spacing:.5px;margin-right:auto}
+.st{font-size:12px;border-radius:6px;padding:1px 8px;background:var(--tile)}
+.st.go{background:var(--tag);color:var(--tag-ink)}
+.st.done{background:var(--ok);color:var(--accent-ink)}
+.demo{font-size:11px;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:0 6px}
+.thumbs{display:flex;gap:8px;margin:12px 0 0;position:relative}
+.thumbs .art{width:56px;border-radius:12px}
+.bar{position:relative;height:8px;border-radius:4px;background:var(--tile);margin:30px 0 8px}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--kraft);transition:width 1s linear}
+.truck{position:absolute;top:-24px;width:32px;height:22px;transform:translateX(-50%);transition:left 1s linear}
+.truck svg{display:block;width:100%;height:100%}
+.kr{fill:var(--kraft)} .krd{fill:var(--kraft-dark)} .tink{fill:var(--ink)} .tapef{fill:var(--tag);opacity:.9}
+.stages{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));font-size:11px;color:var(--muted);text-align:center}
+.stages li.done{color:var(--ink);font-weight:500}
+.where{font-size:13px;margin:10px 0 0;color:var(--muted);position:relative}
+.where b{color:var(--ink);font-weight:500}
+.parcel .btn{margin-top:12px;position:relative}
+
+/* unboxing */
+.stage{position:relative;height:236px;width:220px;margin:4px auto 0}
+.boxf,.lid,.pop,.glow{position:absolute}
+.boxf{left:30px;bottom:0;width:160px;height:110px;z-index:2}
+.lid{left:22px;bottom:104px;width:176px;height:32px;z-index:3;transform-origin:20% 100%}
+.pop{left:50%;bottom:24px;z-index:1;display:flex;gap:6px;transform:translate(-50%,40px) scale(.45);opacity:0}
+.pop svg{width:104px;height:104px}
+.pop.many svg{width:72px;height:72px}
+.glow{left:50%;top:10px;width:180px;height:180px;margin-left:-90px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--tag) 55%,transparent),transparent 65%);opacity:0;transform:scale(.6)}
+.stage.open .lid{transform:translate(-26px,-74px) rotate(-30deg);opacity:0;transition:transform .55s cubic-bezier(.3,.7,.3,1),opacity .4s .25s}
+.stage.open .pop{transform:translate(-50%,-84px) scale(1);opacity:1;transition:transform .75s .25s cubic-bezier(.2,1.4,.4,1),opacity .3s .25s}
+.stage.open .glow{opacity:1;transform:scale(1);transition:opacity .6s .35s,transform .9s .35s}
+.unbox-after{text-align:center}
+
+/* home */
+.jar{display:grid;grid-template-columns:88px minmax(0,1fr);gap:16px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;margin-top:8px}
+.jar svg{width:88px;height:auto}
+.glass{fill:var(--tile);stroke:var(--line);stroke-width:2}
+.coins{fill:var(--tag)} .coin-edge{fill:none;stroke:var(--tag-ink);stroke-opacity:.16;stroke-width:1.5} .lidc{fill:var(--kraft)}
+.label{font-size:13px;color:var(--muted)}
+.big{font-family:var(--f-num);font-size:34px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.subline{font-size:13px;color:var(--muted);margin-top:4px}
+.owned{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.own{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.own .art{border-radius:12px}
+.own .nm{min-height:0;font-size:13px}
+.cool{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--muted)}
+.cool b{font-family:var(--f-num);color:var(--ink);font-weight:500;white-space:nowrap}
+.coolbar{height:4px;background:var(--tile);border-radius:2px;overflow:hidden}
+.coolbar i{display:block;height:100%;background:var(--ok);transition:width 1s linear}
+.hint{font-size:13px;color:var(--muted);margin:-4px 0 10px}
+.keep{font-size:12px;color:var(--ok)}
+.setrow{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.setrow p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.sw{flex:none;cursor:pointer;width:48px;height:28px;border-radius:14px;background:var(--line);position:relative;border:0;padding:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);transition:left .2s}
+.sw[aria-checked="true"]{background:var(--ok)}
+.sw[aria-checked="true"]::after{left:23px}
+.reset{margin-top:12px}
+.coupon{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 14px;align-items:center;border:1.5px dashed var(--accent);border-radius:14px;padding:12px 16px;margin:16px 0}
+.coupon .pct{grid-row:span 2;font-family:var(--f-display);font-size:32px;color:var(--accent);line-height:1}
+.coupon b{font-family:var(--f-num);letter-spacing:1px}
+.coupon small{color:var(--muted);font-size:12px}
+
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:40;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;transition-delay:0s!important}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">赛博<i>过家家</i></div>
+      <div class="saved-pill">已省<b id="savedPill">¥0</b></div>
+    </div>
+    <div id="shopTools">
+      <label class="search" for="q"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="搜 Lphone、口红、沙发" autocomplete="off" enterkeyhint="search"></label>
+      <div class="chips" id="chips"></div>
+    </div>
+  </header>
+  <main id="view"></main>
+</div>
+
+<nav class="tabs" aria-label="主菜单"><div class="tabs-in" id="tabs"></div></nav>
+
+<div class="sheet-wrap" id="sheetWrap" hidden>
+  <div class="scrim" data-close></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" tabindex="-1"></section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+/* ---------- goods ---------- */
+const RAW=[
+ ["lp17p","数码","phone","Lphone 17 Pro",8999,0,"#E2793A","iPhone 17 Pro","宇宙橙，三颗摄像头",4.9,"21万","phone"],
+ ["gx26u","数码","phone","Gaxaly S26 Ultra",9699,10699,"#3C4250","Galaxy S26 Ultra","自带一支笔",4.8,"6.3万","phone"],
+ ["hm80","数码","phone","Huawoi Mate 80 Pro",6999,0,"#2F5D50","Huawei Mate 80 Pro","国货旗舰",4.9,"15万","phone"],
+ ["ab3","数码","earbuds","AirBeans Pro 3",1899,1999,"#F4F4F2","AirPods Pro 3","降噪豆子",4.8,"40万","audio"],
+ ["sxm6","数码","headphones","Sany XM6 头戴降噪",2999,3499,"#4F5F82","Sony WH-1000XM6","通勤一戴就安静",4.8,"3.1万","audio"],
+ ["lba13","数码","laptop","LacBook Air 13",7999,0,"#A9BBD3","MacBook Air 13","天蓝色",4.9,"8.8万","computer"],
+ ["lpad","数码","tablet","Lpad Air 11",4799,4999,"#B6A6D8","iPad Air","画画追剧",4.8,"9.5万","computer"],
+ ["kpw","数码","ereader","Kandle Paperwhite",1099,0,"#2E3440","Kindle Paperwhite","睡前读几页",4.7,"12万","computer"],
+ ["lw11","数码","watch","Lwatch S11",2999,0,"#E7C3B8","Apple Watch Series 11","睡眠打分",4.7,"7.4万","watch"],
+ ["nsw2","数码","console","Nintendu Swatch 2",3299,0,"#E8424E","Nintendo Switch 2","马力欧在等你",4.9,"5.2万","play"],
+ ["x100","数码","camera","Fujifelm X100VI",10990,0,"#C9CACB","Fujifilm X100VI","一机难求",4.9,"9千","camera"],
+ ["djp3","数码","gimbal","DJY Pocket 3",3499,3699,"#30343C","DJI Osmo Pocket 3","口袋云台",4.8,"4.6万","camera"],
+ ["dss","美妆","dryer","Dyzon Supersonic 吹风机",2999,3199,"#C2416B","Dyson Supersonic","五分钟吹干",4.8,"18万","hair"],
+ ["lmcr","美妆","jar","La Mier 面霜 60ml",2750,0,"#7FA6A8","La Mer Crème de la Mer","贵妇面霜",4.7,"5.6万","skin"],
+ ["sk3","美妆","tallbottle","SK-Ⅲ 神仙水 230ml",1540,1690,"#B23A3A","SK-II Facial Treatment Essence","比原版多一个Ⅰ",4.8,"22万","skin"],
+ ["elanr","美妆","dropper","Estée Lauber 小棕瓶 50ml",960,1050,"#6B3E1F","Estée Lauder Advanced Night Repair","熬夜救星",4.8,"30万","skin"],
+ ["maklip","美妆","lipstick","MAK 子弹头口红",230,0,"#B5304A","MAC lipstick","不挑皮",4.7,"50万","lips"],
+ ["ch6","美妆","perfume","Chanelle No.6 香水 100ml",1350,0,"#E9D49A","Chanel N°5","比五号多一号",4.7,"4.1万","scent"],
+ ["jmpear","美妆","perfume","Jo Malown 英国梨 100ml",1180,0,"#E6DCC6","Jo Malone English Pear & Freesia","秋天的梨",4.8,"6.7万","scent"],
+ ["align","服饰","leggings","Lululemen Align 瑜伽裤",850,0,"#2C3E5C","lululemon Align leggings","裸感",4.8,"26万","sport"],
+ ["fleece","服饰","jacket","Uniglo 摇粒绒外套",199,249,"#D9CBB5","Uniqlo fleece jacket","人手一件",4.6,"80万","coat"],
+ ["parka","服饰","parka","Canada Moose 派克",9800,0,"#6F6A3E","Canada Goose parka","零下三十度",4.8,"1.2万","coat"],
+ ["beta","服饰","jacket","Arc’terix Beta 冲锋衣",5600,0,"#3E7C8C","Arcteryx Beta jacket","上山下班都穿",4.8,"2.8万","coat"],
+ ["af1","服饰","sneaker","Nyke Air Farce 1",799,899,"#FAFAF8","Nike Air Force 1","小白鞋",4.7,"60万","shoe"],
+ ["cloud5","服饰","sneaker","Om Cloud 5",1190,0,"#4A4F5C","On Cloud 5","踩在云上",4.7,"9.9万","shoe"],
+ ["pliage","服饰","tote","Longchomp 饺子包",1050,1290,"#2D3B5E","Longchamp Le Pliage","能装电脑",4.7,"14万","bag"],
+ ["birkin","服饰","handbag","Hermez 铂金包 25",128000,0,"#C8742F","Hermès Birkin 25","配货另计",5.0,"12","bag"],
+ ["sub","服饰","luxwatch","Rolax 绿水鬼",82000,0,"#1F7A4C","Rolex Submariner","加价也要",4.9,"86","watch"],
+ ["v15","家居","stickvac","Dyzon V15 吸尘器",5490,5990,"#D9A23A","Dyson V15","看得见灰",4.8,"7.7万","clean"],
+ ["robo","家居","robovac","Roborok 扫地机器人",3999,4599,"#F1F1EE","Roborock S8","解放双手",4.7,"11万","clean"],
+ ["vertuo","家居","coffee","Nespressi 胶囊咖啡机",1199,1499,"#B8323A","Nespresso Vertuo","一键一杯",4.7,"9.1万","kitchen"],
+ ["quench","家居","tumbler","Stanly 保温杯 1.2L",329,0,"#E8A9B8","Stanley Quencher","一天喝够",4.6,"45万","kitchen"],
+ ["lc24","家居","pot","Le Creuzet 铸铁锅 24cm",2980,3380,"#E2572B","Le Creuset Dutch oven 24cm","炖一锅",4.9,"3.4万","kitchen"],
+ ["sofa","家居","sofa","IKEO 双人沙发",2999,0,"#8FA38A","IKEA two seat sofa","窝着",4.5,"2.2万","home"],
+ ["diff","家居","diffuser","Moji 香薰机",450,0,"#EFEDE7","Muji aroma diffuser","一屋子香",4.6,"16万","home"],
+ ["choc","家居","chocobox","Godiwa 巧克力礼盒",298,0,"#C9A24B","Godiva chocolate","送人或自己吃",4.8,"33万","home"]
+];
+const P=RAW.map(r=>({id:r[0],cat:r[1],kind:r[2],name:r[3],price:r[4],was:r[5],color:r[6],real:r[7],blurb:r[8],rating:r[9],sold:r[10],group:r[11]}));
+const BY=Object.fromEntries(P.map(p=>[p.id,p]));
+const CATS=["全部","数码","美妆","服饰","家居"];
+
+/* ---------- drawings ---------- */
+const D="#262B38",L="#F7F6F2",SV="#C7CBD3",H="rgba(255,255,255,.38)";
+const JK=c=>`<path d="M44 18 L60 26 L76 18 L98 30 L104 86 L90 88 L86 50 L86 106 H34 L34 50 L30 88 L16 86 L22 30 Z" fill="${c}"/><line x1="60" y1="26" x2="60" y2="106" stroke="${D}" stroke-opacity=".35" stroke-width="2"/><path d="M44 18 L60 34 L76 18" fill="none" stroke="${D}" stroke-opacity=".25" stroke-width="3"/>`;
+const ART={
+ phone:c=>`<rect x="36" y="10" width="48" height="100" rx="12" fill="${c}"/><rect x="41" y="15" width="24" height="24" rx="7" fill="${H}"/><circle cx="47.5" cy="21.5" r="4.4" fill="${D}"/><circle cx="58.5" cy="21.5" r="4.4" fill="${D}"/><circle cx="47.5" cy="32.5" r="4.4" fill="${D}"/><circle cx="58.5" cy="32.5" r="2" fill="${L}"/><rect x="40" y="14" width="4" height="90" rx="2" fill="${H}" opacity=".5"/>`,
+ earbuds:c=>`<rect x="30" y="52" width="60" height="46" rx="22" fill="${L}" stroke="${SV}" stroke-width="2"/><line x1="31" y1="66" x2="89" y2="66" stroke="${SV}" stroke-width="2"/><circle cx="60" cy="82" r="2.5" fill="${SV}"/><g fill="${L}" stroke="${SV}" stroke-width="2"><rect x="43" y="34" width="7" height="18" rx="3.5"/><rect x="70" y="34" width="7" height="18" rx="3.5"/><ellipse cx="46" cy="30" rx="9" ry="10"/><ellipse cx="74" cy="30" rx="9" ry="10"/></g>`,
+ headphones:c=>`<path d="M26 72 V58 a34 34 0 0 1 68 0 V72" fill="none" stroke="${c}" stroke-width="8" stroke-linecap="round"/><rect x="16" y="58" width="22" height="40" rx="10" fill="${c}"/><rect x="82" y="58" width="22" height="40" rx="10" fill="${c}"/><rect x="22" y="64" width="10" height="28" rx="5" fill="${H}"/><rect x="88" y="64" width="10" height="28" rx="5" fill="${H}"/>`,
+ laptop:c=>`<rect x="22" y="26" width="76" height="52" rx="5" fill="${c}"/><rect x="27" y="31" width="66" height="42" rx="2" fill="${D}"/><path d="M27 31 h66 v12 L27 64 Z" fill="${H}" opacity=".35"/><path d="M12 80 H108 L102 90 H18 Z" fill="${c}"/><rect x="50" y="80" width="20" height="3" rx="1.5" fill="${D}" opacity=".35"/>`,
+ tablet:c=>`<rect x="26" y="12" width="68" height="96" rx="9" fill="${c}"/><rect x="31" y="17" width="58" height="86" rx="4" fill="${D}"/><path d="M31 17 h58 v28 L31 74 Z" fill="${H}" opacity=".3"/>`,
+ ereader:c=>`<rect x="30" y="10" width="60" height="100" rx="8" fill="${c}"/><rect x="35" y="16" width="50" height="80" rx="2" fill="#E8E5DA"/><g stroke="#A9A595" stroke-width="2.4" stroke-linecap="round"><line x1="41" y1="27" x2="79" y2="27"/><line x1="41" y1="35" x2="79" y2="35"/><line x1="41" y1="43" x2="72" y2="43"/><line x1="41" y1="55" x2="79" y2="55"/><line x1="41" y1="63" x2="76" y2="63"/><line x1="41" y1="71" x2="66" y2="71"/></g>`,
+ watch:c=>`<rect x="46" y="4" width="28" height="112" rx="10" fill="${c}"/><rect x="38" y="34" width="44" height="52" rx="14" fill="${SV}"/><rect x="42" y="38" width="36" height="44" rx="10" fill="${D}"/><text x="60" y="65" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" font-weight="700" fill="${L}">10:09</text><rect x="82" y="50" width="5" height="12" rx="2" fill="${SV}"/>`,
+ console:c=>`<rect x="30" y="34" width="60" height="52" rx="3" fill="${D}"/><rect x="34" y="38" width="52" height="44" rx="2" fill="#3A4256"/><rect x="12" y="34" width="20" height="52" rx="10" fill="${c}"/><rect x="88" y="34" width="20" height="52" rx="10" fill="#3D7BE0"/><circle cx="22" cy="49" r="4.5" fill="${D}"/><circle cx="98" cy="70" r="4.5" fill="${D}"/><g fill="${D}"><circle cx="98" cy="45" r="2"/><circle cx="94" cy="49" r="2"/><circle cx="102" cy="49" r="2"/><circle cx="98" cy="53" r="2"/></g>`,
+ camera:c=>`<rect x="40" y="28" width="18" height="10" rx="2" fill="${SV}"/><rect x="16" y="36" width="88" height="54" rx="8" fill="${c}"/><rect x="16" y="50" width="88" height="28" fill="${D}"/><rect x="80" y="40" width="16" height="8" rx="2" fill="${D}" opacity=".7"/><circle cx="54" cy="64" r="20" fill="#9EA3AC"/><circle cx="54" cy="64" r="14" fill="${D}"/><circle cx="54" cy="64" r="7" fill="#3A4A6A"/><circle cx="51" cy="61" r="2.4" fill="${L}"/>`,
+ gimbal:c=>`<rect x="48" y="46" width="24" height="66" rx="10" fill="${c}"/><rect x="53" y="60" width="14" height="18" rx="3" fill="#3A4256"/><circle cx="60" cy="31" r="18" fill="${c}"/><circle cx="60" cy="31" r="10" fill="${D}"/><circle cx="60" cy="31" r="5" fill="#3A4A6A"/><circle cx="57.5" cy="28.5" r="1.8" fill="${L}"/>`,
+ dryer:c=>`<rect x="51" y="56" width="18" height="56" rx="7" fill="${c}"/><rect x="51" y="70" width="18" height="6" fill="${H}"/><circle cx="60" cy="38" r="20.5" fill="none" stroke="${c}" stroke-width="15"/><circle cx="60" cy="38" r="13" fill="none" stroke="${H}" stroke-width="2"/>`,
+ jar:c=>`<rect x="26" y="50" width="68" height="48" rx="12" fill="#F1EEE8" stroke="${SV}" stroke-width="1.5"/><rect x="28" y="34" width="64" height="20" rx="6" fill="${c}"/><rect x="30" y="38" width="60" height="4" fill="${H}"/><rect x="44" y="68" width="32" height="12" rx="2" fill="${SV}" opacity=".6"/>`,
+ tallbottle:c=>`<rect x="47" y="8" width="26" height="22" rx="3" fill="${D}"/><path d="M40 32 h40 l2 4 v68 a6 6 0 0 1 -6 6 h-32 a6 6 0 0 1 -6 -6 v-68 Z" fill="${c}"/><rect x="45" y="56" width="30" height="26" rx="2" fill="${H}"/><rect x="44" y="40" width="5" height="60" rx="2.5" fill="${H}"/>`,
+ dropper:c=>`<ellipse cx="60" cy="20" rx="9" ry="12" fill="${D}"/><rect x="50" y="28" width="20" height="18" rx="2" fill="#B9A06A"/><rect x="38" y="46" width="44" height="64" rx="12" fill="${c}"/><rect x="44" y="64" width="32" height="22" rx="2" fill="${H}"/><rect x="42" y="52" width="5" height="50" rx="2.5" fill="${H}"/>`,
+ lipstick:c=>`<path d="M50 30 L70 18 V52 H50 Z" fill="${c}"/><rect x="47" y="50" width="26" height="18" rx="2" fill="${SV}"/><rect x="44" y="66" width="32" height="46" rx="4" fill="${D}"/><rect x="48" y="70" width="4" height="38" rx="2" fill="${H}"/>`,
+ perfume:c=>`<rect x="50" y="14" width="20" height="20" rx="2" fill="${D}"/><rect x="54" y="33" width="12" height="9" fill="${SV}"/><rect x="28" y="42" width="64" height="66" rx="5" fill="${c}"/><rect x="34" y="48" width="52" height="54" rx="3" fill="${H}"/><rect x="42" y="68" width="36" height="14" fill="${L}"/>`,
+ leggings:c=>`<path d="M38 14 H82 L87 108 H66 L60 46 L54 108 H33 Z" fill="${c}"/><rect x="38" y="14" width="44" height="9" fill="${H}"/>`,
+ jacket:c=>JK(c),
+ parka:c=>JK(c)+`<path d="M40 24 a20 16 0 0 1 40 0 L76 30 a16 10 0 0 0 -32 0 Z" fill="#E3D6BC"/><circle cx="77" cy="46" r="5" fill="#C9473F"/>`,
+ sneaker:c=>`<path d="M14 82 C14 66 22 60 34 58 L52 46 C60 42 66 46 70 52 L86 64 C98 66 106 70 106 80 V86 H14 Z" fill="${c}" stroke="${SV}" stroke-width="2"/><rect x="12" y="84" width="96" height="12" rx="5" fill="${L}" stroke="${SV}" stroke-width="2"/><path d="M40 62 L58 72 M46 56 L64 66" stroke="${SV}" stroke-width="2.5" stroke-linecap="round"/>`,
+ tote:c=>`<path d="M36 46 a24 24 0 0 1 48 0" fill="none" stroke="#7A5532" stroke-width="5"/><path d="M22 46 H98 L90 104 H30 Z" fill="${c}"/><path d="M44 46 H76 L72 62 H48 Z" fill="#7A5532"/><circle cx="60" cy="58" r="2.5" fill="${SV}"/>`,
+ handbag:c=>`<path d="M42 50 V40 a18 18 0 0 1 36 0 V50" fill="none" stroke="${c}" stroke-width="6"/><rect x="20" y="48" width="80" height="58" rx="6" fill="${c}"/><path d="M20 48 H100 L94 68 H26 Z" fill="${D}" opacity=".18"/><rect x="40" y="60" width="40" height="5" rx="2" fill="#D9B44A"/><rect x="54" y="66" width="12" height="14" rx="2" fill="#D9B44A"/>`,
+ luxwatch:c=>`<rect x="47" y="4" width="26" height="112" rx="6" fill="${SV}"/><circle cx="60" cy="60" r="31" fill="${SV}"/><circle cx="60" cy="60" r="27" fill="${c}"/><circle cx="60" cy="60" r="19" fill="#145C38"/><g fill="${L}"><circle cx="60" cy="45" r="2.2"/><circle cx="75" cy="60" r="2.2"/><circle cx="60" cy="75" r="2.2"/><circle cx="45" cy="60" r="2.2"/></g><path d="M60 60 L60 48 M60 60 L69 64" stroke="${L}" stroke-width="2.6" stroke-linecap="round"/><rect x="90" y="55" width="6" height="10" rx="2" fill="${SV}"/>`,
+ stickvac:c=>`<rect x="56" y="44" width="8" height="56" fill="${SV}"/><rect x="38" y="96" width="44" height="14" rx="6" fill="${c}"/><rect x="44" y="10" width="30" height="38" rx="13" fill="${c}"/><circle cx="59" cy="29" r="8" fill="#9C7BD0"/><path d="M74 18 h8 a6 6 0 0 1 6 6 v18 a6 6 0 0 1 -6 6 h-8" fill="none" stroke="${D}" stroke-width="5"/>`,
+ robovac:c=>`<circle cx="60" cy="62" r="46" fill="${c}" stroke="${SV}" stroke-width="2"/><circle cx="60" cy="62" r="35" fill="none" stroke="${SV}" stroke-width="1.5"/><circle cx="60" cy="38" r="10" fill="${D}"/><circle cx="60" cy="38" r="4" fill="${SV}"/><rect x="50" y="80" width="20" height="5" rx="2.5" fill="${SV}"/>`,
+ coffee:c=>`<rect x="30" y="14" width="60" height="92" rx="12" fill="${c}"/><rect x="36" y="20" width="48" height="24" rx="11" fill="${D}" opacity=".85"/><rect x="38" y="58" width="44" height="42" rx="4" fill="${D}" opacity=".9"/><rect x="50" y="78" width="20" height="18" rx="3" fill="${L}"/><rect x="58" y="58" width="4" height="9" fill="${SV}"/>`,
+ tumbler:c=>`<rect x="38" y="20" width="44" height="12" rx="4" fill="${SV}"/><rect x="62" y="4" width="5" height="18" rx="2" fill="${SV}"/><path d="M38 32 H82 L76 110 H44 Z" fill="${c}"/><path d="M80 44 h10 a8 8 0 0 1 8 8 v22 a8 8 0 0 1 -8 8 h-12" fill="none" stroke="${c}" stroke-width="7"/><rect x="45" y="38" width="6" height="64" rx="3" fill="${H}"/>`,
+ pot:c=>`<rect x="53" y="24" width="14" height="10" rx="4" fill="${D}"/><ellipse cx="60" cy="38" rx="42" ry="9" fill="${c}"/><rect x="6" y="54" width="14" height="8" rx="4" fill="${c}"/><rect x="100" y="54" width="14" height="8" rx="4" fill="${c}"/><path d="M18 44 H102 V82 a20 20 0 0 1 -20 20 H38 a20 20 0 0 1 -20 -20 Z" fill="${c}"/><path d="M18 74 H102 V82 a20 20 0 0 1 -20 20 H38 a20 20 0 0 1 -20 -20 Z" fill="${D}" opacity=".2"/>`,
+ sofa:c=>`<rect x="16" y="34" width="88" height="42" rx="10" fill="${c}"/><rect x="10" y="56" width="20" height="40" rx="8" fill="${c}"/><rect x="90" y="56" width="20" height="40" rx="8" fill="${c}"/><rect x="28" y="66" width="64" height="24" rx="6" fill="${H}"/><g fill="${D}"><rect x="18" y="96" width="5" height="10" rx="2"/><rect x="97" y="96" width="5" height="10" rx="2"/></g>`,
+ diffuser:c=>`<path d="M34 100 Q34 60 60 52 Q86 60 86 100 Z" fill="${c}" stroke="${SV}" stroke-width="2"/><ellipse cx="60" cy="100" rx="28" ry="5" fill="${SV}"/><path d="M56 46 q-8 -10 0 -18 q8 -8 0 -18 M67 44 q-6 -8 0 -14" fill="none" stroke="${SV}" stroke-width="3" stroke-linecap="round"/>`,
+ chocobox:c=>`<rect x="16" y="42" width="88" height="58" rx="6" fill="${c}"/><rect x="13" y="36" width="94" height="16" rx="5" fill="${c}"/><rect x="13" y="46" width="94" height="4" fill="${D}" opacity=".12"/><rect x="54" y="36" width="12" height="64" fill="#8C2B2B"/><path d="M60 36 q-18 -16 -22 -4 q4 8 22 4 q18 -16 22 -4 q-4 8 -22 4" fill="#8C2B2B"/>`
+};
+const art=p=>`<svg viewBox="0 0 120 120" aria-hidden="true">${ART[p.kind](p.color)}</svg>`;
+const TRUCK=`<svg viewBox="0 0 32 22" aria-hidden="true"><rect x="1" y="3" width="19" height="12" rx="2" class="kr"/><rect x="9" y="3" width="4" height="12" class="tapef"/><path d="M20 7 h5 l5 5 v3 h-10 z" class="tink"/><circle cx="7" cy="17" r="3" class="tink"/><circle cx="25" cy="17" r="3" class="tink"/></svg>`;
+const BOX=`<svg viewBox="0 0 160 110" aria-hidden="true"><rect width="160" height="110" rx="6" class="kr"/><rect width="160" height="12" class="krd"/><rect x="66" width="28" height="110" class="tapef"/><rect x="14" y="72" width="40" height="24" rx="3" fill="#F3EBDD"/><g stroke="#B9A88C" stroke-width="2"><line x1="20" y1="80" x2="48" y2="80"/><line x1="20" y1="87" x2="40" y2="87"/></g></svg>`;
+const LID=`<svg viewBox="0 0 176 32" aria-hidden="true"><rect width="176" height="32" rx="5" class="krd"/><rect x="74" width="28" height="32" class="tapef"/></svg>`;
+const ICON={
+ shop:'<path d="M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>',
+ cart:'<path d="M3 4h2l2.2 10.5a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',
+ track:'<path d="M3 7.5L12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5l9 4.5 9-4.5M12 12v9"/>',
+ me:'<path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/>'
+};
+
+/* ---------- time ---------- */
+const HR=3600e3, DAY=24*HR, COOL=7*DAY, ACCEL=720;
+const SPEEDS={flash:{name:"闪电达",sub:"1 分钟",ms:60e3},today:{name:"当日达",sub:"2 小时",ms:2*HR},std:{name:"标准",sub:"2 天",ms:2*DAY}};
+const STAGES=[{t:0,label:"已下单",place:"过家家云仓"},{t:.12,label:"已出库",place:"梦境分拣中心"},{t:.4,label:"运输中",place:"星河干线"},{t:.82,label:"派送中",place:"你家楼下"},{t:1,label:"已送达",place:"门口"}];
+const now=()=>Date.now();
+const dur=o=>{const ms=SPEEDS[o.speed].ms;return (S.fast&&o.speed!=="flash")?Math.max(30e3,ms/ACCEL):ms};
+const prog=o=>Math.min(1,Math.max(0,(now()-o.placedAt)/dur(o)));
+const coolDur=()=>S.fast?COOL/ACCEL:COOL;
+const coolLeft=x=>x.at+coolDur()-now();
+const pad=n=>String(n).padStart(2,"0");
+function fmtDur(ms){ms=Math.max(0,ms);const s=Math.ceil(ms/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),sec=s%60;
+ if(d)return `${d} 天 ${h} 时`; if(h)return `${h} 时 ${m} 分`; if(m)return `${m} 分 ${sec} 秒`; return `${sec} 秒`;}
+function whenText(t){const d=new Date(t),n=new Date(),hm=`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+ const day=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime(); const diff=Math.round((day(d)-day(n))/DAY);
+ if(diff===0)return "今天 "+hm; if(diff===1)return "明天 "+hm; return `${d.getMonth()+1}月${d.getDate()}日 ${hm}`;}
+const fmt=n=>n.toLocaleString("zh-CN");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- state ---------- */
+const KEY="gjj-state-v1";
+function fresh(){const t=now();return{cart:[],fast:true,saved:528,unboxCount:1,
+ orders:[{no:"GJJ2611110328",items:[{id:"quench",qty:1}],total:329,speed:"std",placedAt:t-110e3,unboxed:false,demo:true}],
+ owned:[{id:"fleece",qty:1,at:t-COOL-60e3,demo:true}]};}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.cart)&&Array.isArray(s.orders))return s;}catch(e){}return fresh();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let S=load();
+let tab="shop",cat="全部",q="",lastSig="",chk=null,resetArm=false;
+
+/* ---------- elements ---------- */
+const $=id=>document.getElementById(id);
+const view=$("view"),sheetWrap=$("sheetWrap"),sheet=$("sheet");
+
+function renderChips(){$("chips").innerHTML=CATS.map(c=>`<button class="chip-btn" data-cat="${c}" aria-pressed="${c===cat}">${c}</button>`).join("");}
+function renderTabs(){
+ const n=S.cart.reduce((a,i)=>a+i.qty,0), ready=S.orders.filter(o=>prog(o)>=1&&!o.unboxed).length;
+ const T=[["shop","逛逛",0],["cart","购物车",n],["track","快递",ready],["me","我的",0]];
+ $("tabs").innerHTML=T.map(([k,l,b])=>`<button class="tab" data-tab="${k}" ${tab===k?'aria-current="page"':""}><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}${b?`<span class="badge">${b}</span>`:""}</button>`).join("");
+ $("savedPill").textContent="¥"+fmt(S.saved);
+}
+
+/* shop */
+function shopList(){const k=q.trim().toLowerCase();return P.filter(p=>(cat==="全部"||p.cat===cat)&&(!k||(p.name+p.blurb+p.real).toLowerCase().includes(k)));}
+function card(p){return `<button class="card" data-open="${p.id}"><div class="art">${art(p)}${p.was?'<span class="flag">返场</span>':""}</div><div class="nm">${esc(p.name)}</div><div class="row"><span class="tag"><small>¥</small>${fmt(p.price)}</span>${p.was?`<s>¥${fmt(p.was)}</s>`:""}</div><div class="meta">${p.sold} 人买过</div></button>`;}
+function renderShop(){const l=shopList();view.innerHTML=l.length?`<div class="grid">${l.map(card).join("")}</div>`:`<div class="none">没找到，换个词试试</div>`;}
+
+/* cart */
+const EMPTY=`<svg viewBox="0 0 160 120" aria-hidden="true"><path d="M20 50 L80 30 L140 50 L80 70 Z" class="krd"/><path d="M20 50 L80 70 V112 L20 92 Z" class="kr"/><path d="M140 50 L80 70 V112 L140 92 Z" class="kr" opacity=".85"/><path d="M20 50 L4 70 L64 90 L80 70 Z" class="kr"/><path d="M140 50 L156 70 L96 90 L80 70 Z" class="kr" opacity=".85"/></svg>`;
+function renderCart(){
+ if(!S.cart.length){view.innerHTML=`<h2 class="sec-title">购物车</h2><div class="empty">${EMPTY}<div>空空的</div><button class="btn sm" data-tab="shop">去逛逛</button></div>`;return;}
+ const total=S.cart.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
+ view.innerHTML=`<h2 class="sec-title">购物车</h2>${S.cart.map(i=>{const p=BY[i.id];return `<div class="line"><div class="art" data-open="${p.id}" style="cursor:pointer">${art(p)}</div><div><div class="nm">${esc(p.name)}</div><span class="tag"><small>¥</small>${fmt(p.price)}</span></div><div class="step"><button data-dec="${p.id}" aria-label="减一件">−</button><span>${i.qty}</span><button data-inc="${p.id}" aria-label="加一件">+</button></div></div>`}).join("")}
+ <div class="sum"><div><div class="label">合计</div><div class="total">¥${fmt(total)}</div></div><button class="btn" style="flex:none" data-checkout="cart">去结算</button></div>`;
+}
+
+/* track */
+function stageOf(p){let c=0;STAGES.forEach((s,i)=>{if(p>=s.t)c=i});return c;}
+function parcel(o){
+ const p=prog(o),c=stageOf(p),done=p>=1;
+ const st=!done?`<span class="st go">${STAGES[c].label}</span>`:o.unboxed?`<span class="st">已拆箱</span>`:`<span class="st done">待拆箱</span>`;
+ return `<article class="parcel" data-no="${o.no}"><div class="p-head"><span class="no">${o.no}</span>${o.demo?'<span class="demo">示例</span>':""}${st}</div>
+ <div class="thumbs">${o.items.map(i=>`<div class="art">${art(BY[i.id])}</div>`).join("")}</div>
+ <div class="bar"><i style="width:${p*100}%"></i><b class="truck" style="left:${p*100}%">${TRUCK}</b></div>
+ <ol class="stages">${STAGES.map((s,i)=>`<li class="${i<=c?"done":""}">${s.label}</li>`).join("")}</ol>
+ <p class="where">${whereText(o)}</p>
+ ${done&&!o.unboxed?`<button class="btn wide" data-unbox="${o.no}">拆箱</button>`:""}</article>`;
+}
+function whereText(o){const p=prog(o),c=stageOf(p);return p<1?`<b>${STAGES[c].place}</b> · 还要 ${fmtDur(o.placedAt+dur(o)-now())}`:o.unboxed?`已收进家当`:`<b>到门口了</b> · 去拆吧`;}
+function renderTrack(){view.innerHTML=`<h2 class="sec-title">快递</h2>`+(S.orders.length?S.orders.map(parcel).join(""):`<div class="empty">${EMPTY}<div>还没有包裹</div><button class="btn sm" data-tab="shop">去逛逛</button></div>`);}
+
+/* me */
+function jarSvg(){const lv=S.saved<=0?0:Math.max(.08,Math.min(1,Math.log10(S.saved)/6)),h=Math.round(72*lv);let edges="";for(let y=104;y>104-h;y-=8)edges+=`<ellipse cx="48" cy="${y}" rx="27" ry="3" class="coin-edge"/>`;
+ return `<svg viewBox="0 0 96 112" aria-hidden="true"><defs><clipPath id="jc"><path d="M20 26 h56 v70 a10 10 0 0 1 -10 10 h-36 a10 10 0 0 1 -10 -10z"/></clipPath></defs><rect x="24" y="6" width="48" height="13" rx="4" class="lidc"/><path d="M18 22 h60 v74 a12 12 0 0 1 -12 12 h-36 a12 12 0 0 1 -12 -12z" class="glass"/><g clip-path="url(#jc)"><rect x="18" y="${108-h}" width="60" height="${h}" class="coins"/>${edges}</g></svg>`;}
+function ownCard(x,i){const p=BY[x.id],left=coolLeft(x),f=Math.min(1,1-left/coolDur());
+ const tail=x.enough?`<div class="keep">有这个就够了</div>`:left>0?`<div class="cool"><span>冷静中</span><b data-cool="${i}">${fmtDur(left)}</b></div><div class="coolbar"><i data-coolbar="${i}" style="width:${f*100}%"></i></div>`:`<button class="btn sm" data-real="${i}">还想要真的？</button>`;
+ return `<div class="own"><div class="art">${art(p)}</div><div class="nm">${esc(p.name)}${x.qty>1?` ×${x.qty}`:""}</div>${x.demo?'<span class="demo" style="align-self:flex-start">示例</span>':""}${tail}</div>`;}
+function renderMe(){
+ view.innerHTML=`<h2 class="sec-title">我的</h2>
+ <section class="jar">${jarSvg()}<div><div class="label">一共省下</div><div class="big">¥${fmt(S.saved)}</div><div class="subline">下单 ${S.orders.length} 次 · 拆箱 ${S.unboxCount} 个</div></div></section>
+ <h3>家当 <small>${S.owned.reduce((a,x)=>a+x.qty,0)} 件</small></h3>
+ <p class="hint">到手七天还惦记，再去买真的。</p>
+ ${S.owned.length?`<div class="owned">${S.owned.map(ownCard).join("")}</div>`:`<div class="none">拆了箱的东西会摆在这里</div>`}
+ <h3>设置</h3>
+ <div class="setrow"><div><b>体验模式</b><p>时间快 720 倍，快递几分钟到，冷静期十几分钟满</p></div><button class="sw" role="switch" aria-checked="${S.fast}" aria-label="体验模式" data-fast></button></div>
+ <button class="btn ghost wide reset" data-reset>${resetArm?"再点一次，全部清空":"清空重来"}</button>`;
+}
+
+/* ---------- views ---------- */
+function sig(){return tab+"|"+S.fast+"|"+S.orders.map(o=>o.no+(prog(o)>=1?1:0)+(o.unboxed?1:0)).join()+"|"+S.owned.map(x=>(coolLeft(x)>0?0:1)+(x.enough?1:0)).join();}
+function render(){
+ $("shopTools").hidden=tab!=="shop";
+ if(tab==="shop")renderShop(); else if(tab==="cart")renderCart(); else if(tab==="track")renderTrack(); else renderMe();
+ renderTabs(); lastSig=sig();
+}
+function live(){
+ if(tab==="track"){S.orders.forEach(o=>{const el=view.querySelector(`[data-no="${o.no}"]`);if(!el)return;const p=prog(o),c=stageOf(p);
+  el.querySelector(".bar i").style.width=p*100+"%";el.querySelector(".truck").style.left=p*100+"%";
+  el.querySelectorAll(".stages li").forEach((li,i)=>li.classList.toggle("done",i<=c));el.querySelector(".where").innerHTML=whereText(o);});}
+ if(tab==="me"){S.owned.forEach((x,i)=>{const b=view.querySelector(`[data-cool="${i}"]`),bar=view.querySelector(`[data-coolbar="${i}"]`);if(b)b.textContent=fmtDur(coolLeft(x));if(bar)bar.style.width=Math.min(1,1-coolLeft(x)/coolDur())*100+"%";});}
+}
+function setTab(t){tab=t;window.scrollTo(0,0);render();}
+
+/* ---------- sheets ---------- */
+function openSheet(html){sheet.innerHTML=`<div class="grab"></div>`+html;sheetWrap.hidden=false;sheet.scrollTop=0;requestAnimationFrame(()=>requestAnimationFrame(()=>sheetWrap.classList.add("show")));setTimeout(()=>sheet.focus({preventScroll:true}),60);}
+function closeSheet(){sheetWrap.classList.remove("show");setTimeout(()=>{sheetWrap.hidden=true;sheet.innerHTML="";},300);chk=null;}
+let toastT;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800);}
+
+function compareSet(p){let g=P.filter(x=>x.group===p.group&&x.id!==p.id);if(!g.length)g=P.filter(x=>x.cat===p.cat&&x.id!==p.id).sort((a,b)=>Math.abs(a.price-p.price)-Math.abs(b.price-p.price)).slice(0,2);return g.slice(0,3);}
+function openProduct(id){const p=BY[id],o=compareSet(p);
+ const row=(x,me)=>{const d=x.price-p.price;return `<tr class="${me?"me":""}" ${me?"":`data-open="${x.id}"`}><td>${esc(x.name)}</td><td class="n">¥${fmt(x.price)}${me?"":`<span class="d ${d>0?"up":"down"}">${d>0?"贵":"省"} ¥${fmt(Math.abs(d))}</span>`}</td><td class="n">★ ${x.rating.toFixed(1)}</td><td class="n">${x.sold}</td></tr>`};
+ openSheet(`<div class="sh-art">${art(p)}</div><h2>${esc(p.name)}</h2><p class="blurb">${esc(p.blurb)} · ★ ${p.rating.toFixed(1)} · ${p.sold} 人买过</p>
+ <div class="pricebar"><span class="tag big"><small>¥</small>${fmt(p.price)}</span>${p.was?`<s>¥${fmt(p.was)}</s><span class="flag" style="position:static">返场价</span>`:""}</div>
+ <h3>比一比</h3><div class="cmp-wrap"><table class="cmp"><thead><tr><th>商品</th><th>价格</th><th>评分</th><th>买过</th></tr></thead><tbody>${row(p,true)}${o.map(x=>row(x,false)).join("")}</tbody></table></div>
+ <div class="actions"><button class="btn ghost" data-add="${p.id}">加入购物车</button><button class="btn" data-buy="${p.id}">立即买</button></div>`);}
+
+function checkoutHtml(){const total=chk.items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
+ return `<h2>结算</h2><ul class="mini">${chk.items.map(i=>`<li><span>${esc(BY[i.id].name)}${i.qty>1?` ×${i.qty}`:""}</span><span>¥${fmt(BY[i.id].price*i.qty)}</span></li>`).join("")}</ul>
+ <h3>怎么送</h3><div class="opts" role="radiogroup" aria-label="配送方式">${Object.entries(SPEEDS).map(([k,v])=>`<button class="opt" role="radio" aria-checked="${chk.speed===k}" data-speed="${k}"><b>${v.name}</b><small>${v.sub}</small></button>`).join("")}</div>
+ <div class="pay"><div class="cardface" id="cardface"><div class="t">过家家卡<b>∞</b></div><div><div class="num">6222 •••• •••• 1111</div><div class="lim">额度无限 · 不扣一分钱</div></div></div><div class="reader" id="reader"><span>刷这里</span><i></i></div></div>
+ <button class="btn wide" id="payBtn" data-pay>刷卡 ¥${fmt(total)}</button><p class="fine">不收真卡号，也不花真钱</p>`;}
+function openCheckout(items,fromCart){chk={items,fromCart,speed:chk&&chk.speed||"today"};openSheet(checkoutHtml());}
+function beep(){try{const A=window.AudioContext||window.webkitAudioContext,a=new A(),o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.value=1320;g.gain.setValueAtTime(.0001,a.currentTime);g.gain.exponentialRampToValueAtTime(.12,a.currentTime+.01);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.16);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.18);setTimeout(()=>a.close(),400);}catch(e){}}
+function pay(){const btn=$("payBtn");if(!btn||btn.disabled)return;btn.disabled=true;
+ const c=chk;$("cardface").classList.add("swipe");
+ setTimeout(()=>{beep();$("reader").classList.add("ok");},430);
+ setTimeout(()=>{const t=now(),d=new Date(t),total=c.items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
+  const o={no:`GJJ${String(d.getFullYear()).slice(2)}${pad(d.getMonth()+1)}${pad(d.getDate())}${Math.floor(1000+Math.random()*9000)}`,items:c.items.map(i=>({id:i.id,qty:i.qty})),total,speed:c.speed,placedAt:t,unboxed:false};
+  S.orders.unshift(o);S.saved+=total;if(c.fromCart)S.cart=[];save();renderTabs();if(tab!=="shop")render();
+  sheet.innerHTML=`<div class="grab"></div><div class="ok-title">刷好了</div><div class="receipt">
+  <div class="r-row"><span>订单号</span><b>${o.no}</b></div><div class="r-row"><span>标价</span><b>¥${fmt(total)}</b></div><div class="r-row"><span>实付</span><b>¥0</b></div>
+  <div class="r-row big"><span>又省下</span><b>¥${fmt(total)}</b></div><div class="r-row"><span>${SPEEDS[o.speed].name} · 预计</span><b>${whenText(t+dur(o))}</b></div></div>
+  <div class="actions"><button class="btn ghost" data-close>接着逛</button><button class="btn" data-go="track">看快递</button></div>`;chk=null;},1000);}
+
+function openUnbox(no){const o=S.orders.find(x=>x.no===no);if(!o)return;
+ openSheet(`<h2 style="text-align:center">包裹到了</h2><div class="stage" id="stage"><div class="glow"></div><div class="pop ${o.items.length>1?"many":""}">${o.items.slice(0,3).map(i=>art(BY[i.id])).join("")}</div><div class="boxf">${BOX}</div><div class="lid">${LID}</div></div>
+ <div class="unbox-before"><button class="btn wide" data-dounbox="${no}">拆！</button></div>
+ <div class="unbox-after" hidden><p>${o.items.map(i=>esc(BY[i.id].name)+(i.qty>1?` ×${i.qty}`:"")).join("、")}</p><button class="btn wide" data-keep="${no}">收进家当</button></div>`);}
+function doUnbox(){const st=$("stage");if(!st||st.classList.contains("open"))return;st.classList.add("open");sheet.querySelector(".unbox-before").hidden=true;
+ const rm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;setTimeout(()=>{const a=sheet.querySelector(".unbox-after");if(a)a.hidden=false;},rm?0:1000);}
+function keep(no){const o=S.orders.find(x=>x.no===no);if(!o||o.unboxed)return;o.unboxed=true;S.unboxCount++;const t=now();
+ o.items.forEach(i=>S.owned.unshift({id:i.id,qty:i.qty,at:t}));save();closeSheet();toast("收进家当了");render();}
+
+function openReal(i){const x=S.owned[i];if(!x)return;const p=BY[x.id],code="GJJ-"+Math.random().toString(36).slice(2,6).toUpperCase();
+ openSheet(`<div class="sh-art">${art(p)}</div><h2>冷静了七天，还惦记</h2><p class="blurb">那就是真喜欢。真货叫 ${esc(p.real)}。</p>
+ <div class="coupon"><span class="pct">9折</span><b>${code}</b><small>示例券，将来由商家出</small></div>
+ <a class="btn wide" href="https://www.amazon.com/s?k=${encodeURIComponent(p.real)}" target="_blank" rel="noopener">去看真的</a>
+ <button class="btn ghost wide" style="margin-top:10px" data-enough="${i}">算了，有这个就够</button>`);}
+
+/* ---------- actions ---------- */
+document.addEventListener("click",e=>{
+ const t=e.target.closest("[data-open],[data-add],[data-buy],[data-close],[data-tab],[data-cat],[data-inc],[data-dec],[data-checkout],[data-speed],[data-pay],[data-go],[data-unbox],[data-dounbox],[data-keep],[data-real],[data-enough],[data-fast],[data-reset]");
+ if(!t)return;const d=t.dataset;
+ if(d.open){openProduct(d.open);}
+ else if(d.add){const c=S.cart.find(i=>i.id===d.add);c?c.qty++:S.cart.push({id:d.add,qty:1});save();renderTabs();closeSheet();toast("放进购物车了");}
+ else if(d.buy){openCheckout([{id:d.buy,qty:1}],false);}
+ else if("close" in d){closeSheet();}
+ else if(d.tab){setTab(d.tab);}
+ else if(d.cat){cat=d.cat;renderChips();renderShop();}
+ else if(d.inc){const c=S.cart.find(i=>i.id===d.inc);if(c)c.qty++;save();render();}
+ else if(d.dec){const c=S.cart.find(i=>i.id===d.dec);if(c){c.qty--;if(c.qty<=0)S.cart=S.cart.filter(i=>i!==c);}save();render();}
+ else if(d.checkout){if(S.cart.length)openCheckout(S.cart.map(i=>({...i})),true);}
+ else if(d.speed){if(chk){chk.speed=d.speed;sheet.innerHTML=`<div class="grab"></div>`+checkoutHtml();}}
+ else if("pay" in d){pay();}
+ else if(d.go){closeSheet();setTab(d.go);}
+ else if(d.unbox){openUnbox(d.unbox);}
+ else if(d.dounbox){doUnbox();}
+ else if(d.keep){keep(d.keep);}
+ else if(d.real){openReal(+d.real);}
+ else if(d.enough){const x=S.owned[+d.enough];if(x)x.enough=true;save();closeSheet();render();}
+ else if("fast" in d){S.fast=!S.fast;save();render();toast(S.fast?"体验模式开了":"回到真实时间");}
+ else if("reset" in d){if(!resetArm){resetArm=true;render();setTimeout(()=>{if(resetArm){resetArm=false;if(tab==="me")render();}},4000);}else{resetArm=false;S=fresh();save();render();toast("清空了，重新开始");}}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!sheetWrap.hidden)closeSheet();});
+$("q").addEventListener("input",e=>{q=e.target.value;renderShop();});
+
+renderChips();render();
+setInterval(()=>{const s=sig();if(s!==lastSig){if(!(tab==="shop"))render();else{renderTabs();lastSig=s;}}else live();},1000);
+})();
+</script>
