@@ -1,0 +1,13 @@
+name = "gjj-api"
+main = "src/index.js"
+compatibility_date = "2026-05-01"
+# Served only on the custom domain; the workers.dev address would expose the account subdomain.
+workers_dev = false
+routes = [{ pattern = "gjj-api.yingwang.dev", custom_domain = true }]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gjj"
+database_id = "e7190cf7-578e-44ea-8582-5a06145ef823"
+
+# Secrets (set with `wrangler secret put`, never committed): ADMIN_KEY, IP_SALT.

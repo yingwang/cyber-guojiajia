@@ -320,6 +320,16 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
 .minip{display:flex;gap:12px;align-items:center}
 .minip .art{width:56px;border-radius:12px;flex:none}
 .small-link{all:unset;cursor:pointer;font-size:12px;color:var(--accent)}
+.field.one{min-height:0;height:46px;resize:none}
+.rv-top .demo,.qa-meta .demo,.qa-meta .mine,.qa-a .mine{margin-left:6px;font-weight:400}
+.del.in{margin:0 0 0 8px}
+.like:disabled{cursor:default}
+.board-note{font-size:12px;color:var(--muted);margin:10px 0 0}
+.adm{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:8px;font-size:13px}
+.adm p{margin:4px 0;line-height:1.5}
+.adm .meta{font-size:12px;color:var(--muted)}
+.adm .acts{display:flex;gap:14px}
+.adm .acts .del{margin-top:4px}
 
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;transition-delay:0s!important}}
 </style>
@@ -504,15 +514,63 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;","
 
 /* ---------- state ---------- */
 const KEY="gjj-state-v2";
-function fresh(){const t=now();return{cart:[],fast:true,saved:528,unboxCount:1,favs:[],likes:{},myReviews:[],myQs:[],myAns:[],
+function fresh(){const t=now();return{cart:[],fast:true,saved:528,unboxCount:1,favs:[],likes:{},myReviews:[],myQs:[],myAns:[],synced:[],rep:[],
  orders:[{no:"GJJ2611110328",items:[{id:"quench",qty:1,ci:0}],total:329,speed:"std",placedAt:t-110e3,unboxed:false,demo:true}],
  owned:[{id:"fleece",qty:1,ci:0,at:t-COOL-60e3,demo:true}]};}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.cart)&&Array.isArray(s.orders))return s;}catch(e){}return fresh();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 let S=load();
-["favs","myReviews","myQs","myAns"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!S.likes||typeof S.likes!=="object")S.likes={};
+["favs","myReviews","myQs","myAns","synced","rep"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!S.likes||typeof S.likes!=="object")S.likes={};
+// Sample reviews and questions are keyed s:<id>:<i>, the same keys the shared board uses.
+{const L={};for(const k in S.likes)L[/^(?!me:)[a-z0-9-]+:\d+$/.test(k)?"s:"+k:k]=1;S.likes=L;
+ S.myAns.forEach(a=>{const m=/^([a-z0-9-]+):q(\d+)$/.exec(a.qkey||"");if(m)a.qkey=`s:${m[1]}:${m[2]}`;});}
 S.cart=S.cart.filter(i=>BY[i.id]);S.orders.forEach(o=>o.items=o.items.filter(i=>BY[i.id]));S.owned=S.owned.filter(x=>BY[x.id]);
 let tab="shop",cat="全部",q="",lastSig="",chk=null,resetArm=false,cur=null;
+
+/* ---------- shared board ----------
+   With API set (the GitHub Pages build), reviews, questions, answers and likes live on the Worker and everyone sees them;
+   without it (the Artifact build) they stay in this browser. board(pid) gives both the same shape. */
+const API="";/*__API__*/
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}},lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+let ME=null;try{ME=JSON.parse(lsGet("gjj-me"))}catch(e){}
+let ADM=lsGet("gjj-admin")||"",admList=null;
+const RC={};
+const saveMe=()=>lsSet("gjj-me",ME?JSON.stringify(ME):null);
+async function api(path,method,body){const h={};if(body)h["content-type"]="application/json";if(ME&&ME.token)h.authorization="Bearer "+ME.token;if(ADM)h["x-admin"]=ADM;
+ let r;try{r=await fetch(API+path,{method:method||"GET",headers:h,body:body?JSON.stringify(body):undefined});}catch(e){throw new Error("连不上，稍后再试");}
+ const j=await r.json().catch(()=>({}));
+ if(r.status===401&&ME){ME=null;saveMe();}
+ if(!r.ok){const e=new Error(r.status===401?"再试一次":j.error||"出了点问题");e.status=r.status;throw e;}return j;}
+let meP=null;
+function ensureMe(){if(ME&&ME.token)return Promise.resolve(ME);
+ if(!meP)meP=api("/api/me","POST").then(j=>{ME={token:j.token,nick:j.nick,color:j.color,counts:{r:0,q:0,a:0},reviewed:[]};S.synced=[];save();saveMe();return ME;}).finally(()=>{meP=null});return meP;}
+async function syncOwned(){await ensureMe();const need=[...new Set(S.owned.map(x=>x.id))].filter(id=>!S.synced.includes(id));
+ if(need.length){await api("/api/orders","POST",{pids:need});S.synced.push(...need);save();}}
+function refreshMe(){if(!API||!ME)return;api("/api/me").then(j=>{Object.assign(ME,{nick:j.nick,color:j.color,counts:j.counts,reviewed:j.reviewed});saveMe();if(tab==="me"&&!cur&&sheetWrap.hidden)rerenderKeep();},()=>{});}
+function loadBoard(pid){if(!API)return;const c=RC[pid]||(RC[pid]={});if(c.loading)return;c.loading=true;
+ api("/api/p/"+encodeURIComponent(pid)).then(j=>{c.posts=j.posts;c.likes=j.likes;c.liked=new Set(j.liked);c.err=false;},()=>{c.err=true;})
+ .finally(()=>{c.loading=false;if(cur&&cur.id===pid)refreshBoard();});}
+const okColor=c=>/^#[0-9A-Fa-f]{6}$/.test(c||"")?c:AVC[0];
+function board(pid){
+ if(!API){const L=k=>S.likes[k]?1:0;return{reviews:S.myReviews.filter(r=>r.id===pid).map(r=>({id:"me:"+r.at,stars:r.stars,ci:r.ci,text:r.text,t:r.at,nick:"我",mine:true})),
+  qs:S.myQs.filter(x=>x.id===pid).map(x=>({id:"me:"+x.at,text:x.text,t:x.at,nick:"我",mine:true})),
+  ans:S.myAns.filter(a=>a.pid===pid).map(a=>({id:"me:"+a.at,parent:a.qkey,text:a.text,ci:a.ci,t:a.at,nick:"我",mine:true})),
+  likeN:L,liked:k=>!!S.likes[k],err:false};}
+ const c=RC[pid]||{},ps=(c.posts||[]).filter(x=>!S.rep.includes(x.id));
+ return{reviews:ps.filter(x=>x.kind==="r"),qs:ps.filter(x=>x.kind==="q"),ans:ps.filter(x=>x.kind==="a").sort((a,b)=>a.t-b.t),
+  likeN:k=>(c.likes&&c.likes[k])||0,liked:k=>!!(c.liked&&c.liked.has(k)),err:!!c.err&&!c.posts};}
+function refreshBoard(){const b=$("board");if(b&&cur){const p=BY[cur.id];b.innerHTML=reviewsSection(p)+qaSection(p);}}
+const transient=e=>!e.status||e.status===401||e.status===429||e.status>=500;
+// Posts written before the board went shared move up once, then leave this browser.
+async function migrate(){if(!API||!(S.myReviews.length||S.myQs.length||S.myAns.length))return;
+ try{await syncOwned();}catch(e){return;}
+ const map={},post=(pid,b)=>api(`/api/p/${encodeURIComponent(pid)}/posts`,"POST",b);
+ for(const r of [...S.myReviews].reverse()){try{await post(r.id,{kind:"r",stars:r.stars,ci:r.ci,text:r.text});}catch(e){if(transient(e))continue;}S.myReviews=S.myReviews.filter(x=>x!==r);}
+ for(const x of [...S.myQs].reverse()){try{const j=await post(x.id,{kind:"q",text:x.text});map["me:"+x.at]="q:"+j.post.id;}catch(e){if(transient(e))continue;}S.myQs=S.myQs.filter(y=>y!==x);}
+ for(const a of [...S.myAns]){const parent=map[a.qkey]||a.qkey;
+  if(parent.startsWith("me:")){if(!S.myQs.some(x=>"me:"+x.at===a.qkey))S.myAns=S.myAns.filter(y=>y!==a);continue;}
+  try{await post(a.pid,{kind:"a",parent,text:a.text,ci:a.ci});}catch(e){if(transient(e))continue;}S.myAns=S.myAns.filter(y=>y!==a);}
+ save();refreshMe();}
 
 /* ---------- elements ---------- */
 const $=id=>document.getElementById(id);
@@ -570,19 +628,25 @@ function ownCard(x,i){const p=BY[x.id],left=coolLeft(x),f=Math.min(1,1-left/cool
  const tail=x.enough?`<div class="keep">有这个就够了</div>`:left>0?`<div class="cool"><span>冷静中</span><b data-cool="${i}">${fmtDur(left)}</b></div><div class="coolbar"><i data-coolbar="${i}" style="width:${f*100}%"></i></div>`:`<button class="btn sm" data-real="${i}">还想要真的？</button>`;
  const rv=reviewed(p.id)?`<span class="meta">已评价</span>`:`<button class="small-link" data-write="${p.id}" data-wci="${x.ci||0}">写评价</button>`;
  return `<div class="own"><div class="art" data-open="${p.id}" style="cursor:pointer">${art(p,x.ci)}</div><div class="nm">${esc(p.name)}${x.qty>1?` ×${x.qty}`:""}</div><div class="row">${x.demo?'<span class="demo">示例</span>':""}${rv}</div>${tail}</div>`;}
-const reviewed=id=>S.myReviews.some(r=>r.id===id);
+const reviewed=id=>API?!!(ME&&ME.reviewed&&ME.reviewed.includes(id))||board(id).reviews.some(r=>r.mine):S.myReviews.some(r=>r.id===id);
 const owns=id=>S.owned.find(x=>x.id===id);
+const myReviewCount=()=>API?(ME&&ME.counts?ME.counts.r:0):S.myReviews.length;
+function admHtml(){if(!admList)return `<p class="hint">读取中…</p>`;if(!admList.length)return `<div class="none">没有被举报的</div>`;
+ return admList.map(x=>{const p=BY[x.pid];return `<div class="adm"><div class="meta">${esc(p?p.name:x.pid)} · ${{r:"评价",q:"提问",a:"回答"}[x.kind]||""} · ${esc(x.nick)} · ${x.hidden===2?"已删":x.hidden===1?"已自动隐藏":"显示中"} · 举报 ${x.reports}</div><p>${esc(x.text)}</p><div class="acts">${x.hidden?`<button class="del" data-admset="${x.id}" data-h="0">恢复</button>`:""}${x.hidden!==2?`<button class="del" data-admset="${x.id}" data-h="2">删除</button>`:""}</div></div>`;}).join("");}
+function loadAdmin(){if(!API||!ADM)return;api("/api/admin/reported").then(j=>{admList=j.posts;if(tab==="me"&&!cur&&$("admList"))$("admList").innerHTML=admHtml();},e=>{if(e.status===403){ADM="";lsSet("gjj-admin",null);if(tab==="me"&&!cur)rerenderKeep();}});}
 function renderMe(){
  view.innerHTML=`<h2 class="sec-title">我的</h2>
- <section class="jar">${jarSvg()}<div><div class="label">一共省下</div><div class="big">¥${fmt(S.saved)}</div><div class="subline">下单 ${S.orders.length} 次 · 拆箱 ${S.unboxCount} 个 · 评价 ${S.myReviews.length} 条</div></div></section>
+ <section class="jar">${jarSvg()}<div><div class="label">一共省下</div><div class="big">¥${fmt(S.saved)}</div><div class="subline">下单 ${S.orders.length} 次 · 拆箱 ${S.unboxCount} 个 · 评价 ${myReviewCount()} 条</div></div></section>
  <h3>家当 <small>${S.owned.reduce((a,x)=>a+x.qty,0)} 件</small></h3>
  <p class="hint">到手七天还惦记，再去买真的。</p>
  ${S.owned.length?`<div class="owned">${S.owned.map(ownCard).join("")}</div>`:`<div class="none">拆了箱的东西会摆在这里</div>`}
  <h3>收藏 <small>${S.favs.length} 件</small></h3>
  ${S.favs.length?`<div class="grid">${S.favs.filter(id=>BY[id]).map(id=>card(BY[id])).join("")}</div>`:`<div class="none">在商品页点心形就能收藏</div>`}
- <h3>设置</h3>
+ <h3 data-adm>设置</h3>
+ ${API?`<div class="setrow"><div><b>昵称</b><p>${ME?esc(ME.nick):"第一次发言时随机起一个"}</p></div><button class="btn sm ghost" data-nick>改</button></div>`:""}
  <div class="setrow"><div><b>体验模式</b><p>时间快 720 倍，快递几分钟到，冷静期十几分钟满</p></div><button class="sw" role="switch" aria-checked="${S.fast}" aria-label="体验模式" data-fast></button></div>
- <button class="btn ghost wide reset" data-reset>${resetArm?"再点一次，全部清空":"清空重来"}</button>`;
+ <button class="btn ghost wide reset" data-reset>${resetArm?"再点一次，全部清空":"清空重来"}</button>
+ ${API&&ADM?`<h3>管理 <small>被举报的</small></h3><div id="admList">${admHtml()}</div><button class="btn ghost wide reset" data-admout>退出管理</button>`:""}`;
 }
 
 /* ---------- views ---------- */
@@ -600,7 +664,7 @@ function live(){
   el.querySelectorAll(".stages li").forEach((li,i)=>li.classList.toggle("done",i<=c));el.querySelector(".where").innerHTML=whereText(o);});}
  if(tab==="me"){S.owned.forEach((x,i)=>{const b=view.querySelector(`[data-cool="${i}"]`),bar=view.querySelector(`[data-coolbar="${i}"]`);if(b)b.textContent=fmtDur(coolLeft(x));if(bar)bar.style.width=Math.min(1,1-coolLeft(x)/coolDur())*100+"%";});}
 }
-function setTab(t){if(cur){cur=null;navDepth=0;if(location.hash)location.hash="";}tab=t;window.scrollTo(0,0);render();}
+function setTab(t){if(cur){cur=null;navDepth=0;if(location.hash)location.hash="";}tab=t;window.scrollTo(0,0);render();if(t==="me"){refreshMe();loadAdmin();}}
 
 /* ---------- sheets ---------- */
 function setSheet(body,foot,keepScroll){const old=sheet.querySelector(".sh-body"),top=keepScroll&&old?old.scrollTop:0;
@@ -615,22 +679,28 @@ const AVC=["#E2793A","#3D7BE0","#169E70","#B36AD6","#EE3F6B","#C79661","#2F8F9D"
 function stars(n){return `<span class="stars" aria-label="${n} 星">${"★".repeat(n)}<b>${"★".repeat(5-n)}</b></span>`;}
 const hashStr=t=>[...t].reduce((a,ch)=>(a*31+ch.charCodeAt(0))>>>0,7);
 function agoText(t){const d=now()-t;if(d<60e3)return "刚刚";if(d<HR)return Math.floor(d/60e3)+" 分钟前";if(d<DAY)return Math.floor(d/HR)+" 小时前";return Math.floor(d/DAY)+" 天前";}
-function likeBtn(rid,base){const on=!!S.likes[rid];return `<button class="like" data-like="${rid}" data-base="${base}" aria-pressed="${on}" aria-label="有用">${SV_THUMB}<span>${base+(on?1:0)}</span></button>`;}
-function review(r,rid,base,mine){const h=hashStr(r.nick);
- return `<div class="rv"><div class="av" style="background:${AVC[h%AVC.length]}">${esc([...r.nick][0]||"客")}</div><div><div class="rv-top"><b>${esc(r.nick)}${mine?'<span class="mine">我的</span>':""}</b>${stars(r.stars)}</div><div class="rv-meta">${esc(r.ago||"")}${r.color?" · "+esc(r.color):""}</div><p>${esc(r.text)}</p>${r.follow?`<div class="follow"><em>追评</em>${esc(r.follow)}</div>`:""}<div class="rv-act">${likeBtn(rid,base)}${mine?`<button class="del" data-delrv="${mine}">删除</button>`:""}</div></div></div>`;}
-function reviewsSection(p){const mine=S.myReviews.filter(r=>r.id===p.id),o=owns(p.id);
- const act=o&&!mine.length?`<button class="btn sm" data-write="${p.id}" data-wci="${o.ci||0}">写评价</button>`:(!o?`<span class="note">收到包裹后能写评价</span>`:"");
- return `<div class="sec-head"><h3>买家评价 <small>${p.sold} 条</small></h3>${act}</div><div class="rv-head"><div class="rv-score">${p.rating.toFixed(1)}</div><div>${stars(Math.round(p.rating))}<div class="rv-note">示例评价为虚构，商品名均为谐音</div></div></div>`+
-  mine.map(r=>review({nick:"我",stars:r.stars,ago:agoText(r.at),color:colorName(p,r.ci),text:r.text},"me:"+r.at,0,r.at)).join("")+
-  p.reviews.map((r,i)=>review(r,p.id+":"+i,3+hashStr(p.id+i)%160)).join("");}
-function answerHtml(a,mine){return `<div class="qa-a"><i>答</i><div>${esc(a.text)} <small>${mine?"我":esc(a.nick)}${a.color?" · "+esc(a.color):""}</small></div></div>`;}
-function qaItem(p,qkey,q,nick,ago,answers){const o=owns(p.id),mineA=S.myAns.filter(a=>a.qkey===qkey);
- const all=answers.map(a=>answerHtml(a,false)).join("")+mineA.map(a=>answerHtml({text:a.text,color:colorName(p,a.ci)},true)).join("");
- return `<div class="qa"><div class="qa-q"><i>问</i><div>${esc(q)}</div></div><div class="qa-meta">${esc(nick)} · ${esc(ago)}</div>${all||'<div class="qa-wait">等收到包裹的人来答</div>'}${o&&!mineA.length?`<button class="ask" data-ans="${qkey}" data-pid="${p.id}">我来答</button>`:""}</div>`;}
-function qaSection(p){const qs=QA[p.id]||[],mq=S.myQs.filter(x=>x.id===p.id);
- return `<div class="sec-head"><h3>问大家 <small>${qs.length+mq.length} 个问题</small></h3><button class="btn sm ghost" data-askq="${p.id}">提问</button></div>`+
-  mq.map(x=>qaItem(p,"me:"+x.at,x.text,"我",agoText(x.at),[])).join("")+
-  qs.map((x,i)=>qaItem(p,p.id+":q"+i,x.q,x.nick,x.ago,x.answers||[])).join("");}
+function likeBtn(k,base,B,off){const on=B.liked(k);return `<button class="like" data-like="${k}" aria-pressed="${on}" aria-label="有用"${off?" disabled":""}>${SV_THUMB}<span>${base+B.likeN(k)}</span></button>`;}
+// Your own posts get 删除; other people's get 举报 on the shared board; the admin can remove anything.
+function postTool(x,kind,inline){const c=inline?"del in":"del";
+ if(x.mine||(API&&ADM))return `<button class="${c}" data-del="${x.id}" data-dk="${kind}">删除</button>`;
+ return API?`<button class="${c}" data-rep="${x.id}">举报</button>`:"";}
+const MINE='<span class="mine">我的</span>',SAMPLE='<span class="demo">示例</span>';
+function rvHtml(nick,av,s,meta,text,follow,chip,act){return `<div class="rv"><div class="av" style="background:${av}">${esc([...nick][0]||"客")}</div><div><div class="rv-top"><b>${esc(nick)}${chip}</b>${stars(s)}</div><div class="rv-meta">${esc(meta)}</div><p>${esc(text)}</p>${follow?`<div class="follow"><em>追评</em>${esc(follow)}</div>`:""}<div class="rv-act">${act}</div></div></div>`;}
+function reviewsSection(p){const B=board(p.id),o=owns(p.id),done=B.reviews.some(r=>r.mine)||(API&&reviewed(p.id));
+ const act=o&&!done?`<button class="btn sm" data-write="${p.id}" data-wci="${o.ci||0}">写评价</button>`:(!o?`<span class="note">收到包裹后能写评价</span>`:"");
+ return `<div class="sec-head"><h3>买家评价 <small>${p.sold+B.reviews.length} 条</small></h3>${act}</div><div class="rv-head"><div class="rv-score">${p.rating.toFixed(1)}</div><div>${stars(Math.round(p.rating))}<div class="rv-note">标「示例」的评价是虚构的，商品名均为谐音</div></div></div>`+
+  (B.err?`<p class="board-note">大家的评价暂时没连上</p>`:"")+
+  B.reviews.map(r=>{const k=API?"r:"+r.id:r.id;return rvHtml(r.nick,API?okColor(r.color):AVC[hashStr(r.nick)%AVC.length],r.stars,agoText(r.t)+" · "+colorName(p,r.ci),r.text,"",r.mine?MINE:"",likeBtn(k,0,B,API&&r.mine)+postTool(r,"r"));}).join("")+
+  p.reviews.map((r,i)=>{const k=`s:${p.id}:${i}`;return rvHtml(r.nick,AVC[hashStr(r.nick)%AVC.length],r.stars,(r.ago||"")+(r.color?" · "+r.color:""),r.text,r.follow,SAMPLE,likeBtn(k,3+hashStr(p.id+i)%160,B));}).join("");}
+function qaItem(p,B,qkey,x){const o=owns(p.id),ans=B.ans.filter(a=>a.parent===qkey),answered=ans.some(a=>a.mine);
+ const seed=(x.sample||[]).map(a=>`<div class="qa-a"><i>答</i><div>${esc(a.text)} <small>${esc(a.nick)}${a.color?" · "+esc(a.color):""}</small></div></div>`).join("");
+ const user=ans.map(a=>`<div class="qa-a"><i>答</i><div>${esc(a.text)} <small>${esc(a.nick)} · ${esc(colorName(p,a.ci))}${a.mine?MINE:""}</small>${postTool(a,"a",true)}</div></div>`).join("");
+ const meta=x.sample?`${esc(x.nick)} · ${esc(x.ago)}${SAMPLE}`:`${esc(x.nick)} · ${agoText(x.t)}${x.mine?MINE:""}${postTool(x,"q",true)}`;
+ return `<div class="qa"><div class="qa-q"><i>问</i><div>${esc(x.text)}</div></div><div class="qa-meta">${meta}</div>${seed+user||'<div class="qa-wait">等收到包裹的人来答</div>'}${o&&!answered?`<button class="ask" data-ans="${qkey}" data-pid="${p.id}">我来答</button>`:""}</div>`;}
+function qaSection(p){const B=board(p.id),qs=QA[p.id]||[];
+ return `<div class="sec-head"><h3>问大家 <small>${qs.length+B.qs.length} 个问题</small></h3><button class="btn sm ghost" data-askq="${p.id}">提问</button></div>`+
+  B.qs.map(x=>qaItem(p,B,API?"q:"+x.id:x.id,x)).join("")+
+  qs.map((x,i)=>qaItem(p,B,`s:${p.id}:${i}`,{text:x.q,nick:x.nick,ago:x.ago,sample:x.answers||[]})).join("");}
 function productBody(){const p=BY[cur.id],ci=cur.ci,o=compareSet(p),sl=slides(p,ci);
  const row=(x,me)=>{const d=x.price-p.price;return `<tr class="${me?"me":""}" ${me?"":`data-open="${x.id}"`}><td>${esc(x.name)}</td><td class="n">¥${fmt(x.price)}${me?"":`<span class="d ${d>0?"up":"down"}">${d>0?"贵":"省"} ¥${fmt(Math.abs(d))}</span>`}</td><td class="n">★ ${x.rating.toFixed(1)}</td><td class="n">${x.sold}</td></tr>`};
  return `<div class="gal" id="gal">${sl.map(([lab,svg])=>`<div class="slide">${svg}<span class="lab">${lab}</span></div>`).join("")}</div>
@@ -641,22 +711,53 @@ function productBody(){const p=BY[cur.id],ci=cur.ci,o=compareSet(p),sl=slides(p,
  <h3>详情</h3><p class="desc">${esc(p.desc)}</p>${p.points.length?`<ul class="points">${p.points.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:""}
  ${p.specs.length?`<h3>参数</h3><table class="specs"><tbody>${p.specs.map(([k,v])=>`<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join("")}</tbody></table>`:""}
  <h3>比一比</h3><div class="cmp-wrap"><table class="cmp"><thead><tr><th>商品</th><th>价格</th><th>评分</th><th>买过</th></tr></thead><tbody>${row(p,true)}${o.map(x=>row(x,false)).join("")}</tbody></table></div>
- ${reviewsSection(p)}${qaSection(p)}`;}
+ <div id="board">${reviewsSection(p)}${qaSection(p)}</div>`;}
 function productPage(){return `<div class="pbar"><button class="icon-btn" data-back aria-label="返回">${SV_BACK}</button><div class="ptitle">商品详情</div><button class="icon-btn" data-fav="${cur.id}" aria-pressed="${isFav(cur.id)}" aria-label="收藏">${SV_HEART}</button></div>`+productBody();}
 function wireGallery(){const g=$("gal"),d=$("gdots");if(!g||!d)return;g.addEventListener("scroll",()=>{const i=Math.round(g.scrollLeft/g.clientWidth);d.querySelectorAll("i").forEach((x,k)=>x.classList.toggle("on",k===i));},{passive:true});}
 let listY=0,navDepth=0,draft=null;
 function openProduct(id){if(!sheetWrap.hidden)closeSheet();if(decodeURIComponent(location.hash.slice(1))===id){showProduct(id);return;}navDepth++;location.hash=id;}
-function showProduct(id){if(!cur)listY=window.scrollY;cur={id,ci:0};render();window.scrollTo(0,0);}
+function showProduct(id){if(!cur)listY=window.scrollY;cur={id,ci:0};render();window.scrollTo(0,0);loadBoard(id);}
 function leaveProduct(){if(!cur)return;cur=null;render();window.scrollTo(0,listY);}
 function goBack(){if(navDepth>0&&history.length>1){navDepth--;history.back();}else{navDepth=0;location.hash="";}}
 function pickColor(ci){if(!cur)return;cur.ci=ci;rerenderKeep();}
 function miniProduct(p,ci){return `<div class="minip"><div class="art">${art(p,ci)}</div><div><div class="nm" style="min-height:0">${esc(p.name)}</div><div class="meta">${esc(colorName(p,ci))}</div></div></div>`;}
+const signLine=()=>API?`<p class="fine">${ME?`署名「${esc(ME.nick)}」`:"会随机起个昵称"}，大家都看得见，在「我的」里能改名</p>`:"";
 function openWrite(id,ci){const p=BY[id];draft={id,ci,stars:5};
- openSheet(`<h2>写评价</h2>${miniProduct(p,ci)}<div class="starpick">${[1,2,3,4,5].map(n=>`<button data-star="${n}" aria-pressed="true" aria-label="${n} 星">★</button>`).join("")}</div><textarea class="field" id="rvText" maxlength="300" placeholder="说说手感、颜色，或者拆箱那一下"></textarea>`,`<button class="btn wide" data-post>发表</button>`);}
+ openSheet(`<h2>写评价</h2>${miniProduct(p,ci)}<div class="starpick">${[1,2,3,4,5].map(n=>`<button data-star="${n}" aria-pressed="true" aria-label="${n} 星">★</button>`).join("")}</div><textarea class="field" id="rvText" maxlength="300" placeholder="说说手感、颜色，或者拆箱那一下"></textarea>${signLine()}`,`<button class="btn wide" data-post>发表</button>`);}
 function openAsk(id){const p=BY[id];draft={id};
- openSheet(`<h2>问问买过的人</h2>${miniProduct(p,0)}<textarea class="field" id="qText" style="margin-top:14px" maxlength="120" placeholder="比如：颜色和图片差得多吗"></textarea><p class="fine">收到这件包裹的人能来回答</p>`,`<button class="btn wide" data-postq>提问</button>`);}
+ openSheet(`<h2>问问买过的人</h2>${miniProduct(p,0)}<textarea class="field" id="qText" style="margin-top:14px" maxlength="120" placeholder="比如：颜色和图片差得多吗"></textarea><p class="fine">收到这件包裹的人能来回答</p>${signLine()}`,`<button class="btn wide" data-postq>提问</button>`);}
 function openAnswer(pid,qkey,qtext){const p=BY[pid];draft={id:pid,qkey};
- openSheet(`<h2>我来答</h2><div class="qa-q" style="margin:10px 0 14px"><i>问</i><div>${esc(qtext)}</div></div><textarea class="field" id="aText" maxlength="200" placeholder="说说你用下来的感受"></textarea>`,`<button class="btn wide" data-posta>回答</button>`);}
+ openSheet(`<h2>我来答</h2><div class="qa-q" style="margin:10px 0 14px"><i>问</i><div>${esc(qtext)}</div></div><textarea class="field" id="aText" maxlength="200" placeholder="说说你用下来的感受"></textarea>${signLine()}`,`<button class="btn wide" data-posta>回答</button>`);}
+function openNick(){openSheet(`<h2>改昵称</h2><input class="field one" id="nickIn" maxlength="12" autocomplete="off" value="${esc(ME?ME.nick:"")}"><p class="fine">最多 12 个字</p>`,`<button class="btn wide" data-savenick>保存</button>`);}
+function openAdmin(){openSheet(`<h2>管理</h2><input class="field one" id="admIn" type="password" autocomplete="off" placeholder="管理口令">`,`<button class="btn wide" data-admin>进入</button>`);}
+// One path for reviews (r), questions (q) and answers (a): local array without API, the Worker with it.
+function postNew(kind,text,extra){const pid=draft.id,MSG={r:"评价发好了",q:"问题发出去了",a:"回答好了"};
+ const done=()=>{closeSheet();toast(MSG[kind]);if(cur)refreshBoard();else rerenderKeep();};
+ if(!API){const t=now();if(kind==="r")S.myReviews.unshift({id:pid,ci:extra.ci,stars:extra.stars,text,at:t});
+  else if(kind==="q")S.myQs.unshift({id:pid,text,at:t});else S.myAns.push({qkey:extra.parent,pid,text,ci:extra.ci,at:t});save();done();return;}
+ const btn=sheet.querySelector(".sh-foot .btn");if(btn){if(btn.disabled)return;btn.disabled=true;}
+ (async()=>{await ensureMe();if(kind!=="q")await syncOwned();return api(`/api/p/${encodeURIComponent(pid)}/posts`,"POST",{kind,text,...extra});})()
+ .then(j=>{const c=RC[pid]||(RC[pid]={});if(!c.posts){c.posts=[];c.likes=c.likes||{};c.liked=c.liked||new Set();c.err=false;}c.posts.unshift(j.post);
+  if(ME){ME.counts=ME.counts||{r:0,q:0,a:0};ME.counts[kind]=(ME.counts[kind]||0)+1;if(kind==="r")ME.reviewed=[...(ME.reviewed||[]),pid];saveMe();}done();},
+  e=>{if(btn)btn.disabled=false;toast(e.message);});}
+function delPost(id,kind){const pid=cur&&cur.id;
+ if(!API){const at=+String(id).slice(3);if(kind==="r")S.myReviews=S.myReviews.filter(r=>r.at!==at);
+  else if(kind==="q"){S.myQs=S.myQs.filter(x=>x.at!==at);S.myAns=S.myAns.filter(a=>a.qkey!==id);}else S.myAns=S.myAns.filter(a=>a.at!==at);
+  save();toast("删了");refreshBoard();return;}
+ api("/api/posts/"+id,"DELETE").then(()=>{const c=RC[pid],n=+id;if(c&&c.posts){const x=c.posts.find(y=>y.id===n);c.posts=c.posts.filter(y=>y.id!==n&&y.parent!=="q:"+n);
+   if(x&&x.mine&&ME){if(ME.counts&&ME.counts[x.kind])ME.counts[x.kind]--;if(x.kind==="r"&&ME.reviewed)ME.reviewed=ME.reviewed.filter(v=>v!==pid);saveMe();}}
+  toast("删了");refreshBoard();},e=>toast(e.message));}
+function reportPost(id){const pid=cur&&cur.id;ensureMe().then(()=>api("/api/report","POST",{id})).then(()=>{S.rep.push(id);if(S.rep.length>500)S.rep=S.rep.slice(-500);save();toast("举报了，谢谢");refreshBoard();},e=>toast(e.message));}
+function toggleLike(k){const pid=cur&&cur.id;if(!pid)return;
+ if(!API){if(S.likes[k])delete S.likes[k];else S.likes[k]=1;save();refreshBoard();return;}
+ const c=RC[pid];if(!c||!c.posts)return;c.busy=c.busy||new Set();if(c.busy.has(k))return;c.busy.add(k);
+ const on=!c.liked.has(k),flip=v=>{v?c.liked.add(k):c.liked.delete(k);c.likes[k]=Math.max(0,(c.likes[k]||0)+(v?1:-1));};
+ flip(on);refreshBoard();
+ ensureMe().then(()=>api("/api/like","POST",{target:k})).then(j=>{j.liked?c.liked.add(k):c.liked.delete(k);c.likes[k]=j.likes;},e=>{flip(!on);toast(e.message);})
+ .finally(()=>{c.busy.delete(k);if(cur&&cur.id===pid)refreshBoard();});}
+// Two taps for anything that cannot be taken back.
+function arm(t,armed,plain){if(t.dataset.armed)return true;t.dataset.armed=1;t.textContent=armed;setTimeout(()=>{if(t.isConnected){delete t.dataset.armed;t.textContent=plain;}},3000);return false;}
+let admTaps=0,admT;
 
 function checkoutBody(){const total=chk.items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
  return `<h2>结算</h2><ul class="mini">${chk.items.map(i=>`<li><span>${esc(BY[i.id].name)}${i.qty>1?` ×${i.qty}`:""} <small>${esc(colorName(BY[i.id],i.ci))}</small></span><span>¥${fmt(BY[i.id].price*i.qty)}</span></li>`).join("")}</ul>
@@ -695,21 +796,31 @@ function addToCart(id,ci){const c=S.cart.find(i=>i.id===id&&(i.ci||0)===ci);c?c.
 
 /* ---------- actions ---------- */
 document.addEventListener("click",e=>{
- const t=e.target.closest("[data-open],[data-add],[data-buy],[data-close],[data-tab],[data-cat],[data-inc],[data-dec],[data-checkout],[data-speed],[data-pay],[data-go],[data-unbox],[data-dounbox],[data-keep],[data-real],[data-enough],[data-fast],[data-reset],[data-ci],[data-back],[data-fav],[data-like],[data-write],[data-star],[data-post],[data-delrv],[data-askq],[data-postq],[data-ans],[data-posta]");
+ const t=e.target.closest("[data-open],[data-add],[data-buy],[data-close],[data-tab],[data-cat],[data-inc],[data-dec],[data-checkout],[data-speed],[data-pay],[data-go],[data-unbox],[data-dounbox],[data-keep],[data-real],[data-enough],[data-fast],[data-reset],[data-ci],[data-back],[data-fav],[data-like],[data-write],[data-star],[data-post],[data-del],[data-rep],[data-askq],[data-postq],[data-ans],[data-posta],[data-nick],[data-savenick],[data-adm],[data-admin],[data-admout],[data-admset]");
  if(!t)return;const d=t.dataset;
  if(d.open){openProduct(d.open);}
  else if(d.ci!==undefined){pickColor(+d.ci);}
  else if("back" in d){goBack();}
  else if(d.fav){const id=d.fav,on=!isFav(id);S.favs=on?[id,...S.favs]:S.favs.filter(x=>x!==id);save();document.querySelectorAll(`[data-fav="${id}"]`).forEach(b=>b.setAttribute("aria-pressed",on));toast(on?"收藏了":"取消收藏");}
- else if(d.like){const on=!S.likes[d.like];if(on)S.likes[d.like]=1;else delete S.likes[d.like];save();t.setAttribute("aria-pressed",on);t.querySelector("span").textContent=(+d.base)+(on?1:0);}
+ else if(d.like){toggleLike(d.like);}
  else if(d.write){openWrite(d.write,+(d.wci||0));}
  else if(d.star){if(draft){draft.stars=+d.star;sheet.querySelectorAll("[data-star]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.star<=draft.stars));}}
- else if("post" in d){const x=($("rvText")||{}).value||"";if(x.trim().length<2){toast("多写几个字吧");return;}S.myReviews.unshift({id:draft.id,ci:draft.ci,stars:draft.stars,text:x.trim(),at:now()});save();closeSheet();toast("评价发好了");rerenderKeep();}
- else if(d.delrv){if(t.dataset.armed){S.myReviews=S.myReviews.filter(r=>String(r.at)!==d.delrv);save();toast("删了");rerenderKeep();}else{t.dataset.armed=1;t.textContent="再点一次删除";setTimeout(()=>{if(t.isConnected){delete t.dataset.armed;t.textContent="删除";}},3000);}}
+ else if("post" in d){const x=(($("rvText")||{}).value||"").trim();if([...x].length<2){toast("多写几个字吧");return;}postNew("r",x,{stars:draft.stars,ci:draft.ci});}
+ else if(d.del){if(arm(t,"再点一次删除","删除"))delPost(d.del,d.dk);}
+ else if(d.rep){if(arm(t,"确定举报？","举报"))reportPost(+d.rep);}
  else if(d.askq){openAsk(d.askq);}
- else if("postq" in d){const x=($("qText")||{}).value||"";if(x.trim().length<2){toast("多写几个字吧");return;}S.myQs.unshift({id:draft.id,text:x.trim(),at:now()});save();closeSheet();toast("问题发出去了");rerenderKeep();}
+ else if("postq" in d){const x=(($("qText")||{}).value||"").trim();if([...x].length<2){toast("多写几个字吧");return;}postNew("q",x,{});}
  else if(d.ans){const qa=t.closest(".qa"),qt=qa?qa.querySelector(".qa-q div").textContent:"";openAnswer(d.pid,d.ans,qt);}
- else if("posta" in d){const x=($("aText")||{}).value||"";if(x.trim().length<2){toast("多写几个字吧");return;}const o=owns(draft.id);S.myAns.push({qkey:draft.qkey,pid:draft.id,text:x.trim(),ci:o?o.ci||0:0,at:now()});save();closeSheet();toast("回答好了");rerenderKeep();}
+ else if("posta" in d){const x=(($("aText")||{}).value||"").trim();if([...x].length<2){toast("多写几个字吧");return;}const o=owns(draft.id);postNew("a",x,{parent:draft.qkey,ci:o?o.ci||0:0});}
+ else if("nick" in d){ensureMe().then(openNick,e=>toast(e.message));}
+ else if("savenick" in d){const v=(($("nickIn")||{}).value||"").trim();if(!v){toast("起个名字吧");return;}
+  api("/api/me/nick","POST",{nick:v}).then(j=>{ME.nick=j.nick;saveMe();Object.values(RC).forEach(c=>(c.posts||[]).forEach(x=>{if(x.mine)x.nick=j.nick;}));closeSheet();toast("改好了");render();},e=>toast(e.message));}
+ else if("adm" in d){clearTimeout(admT);admT=setTimeout(()=>{admTaps=0},2000);if(API&&++admTaps>=5){admTaps=0;openAdmin();}}
+ else if("admin" in d){const v=(($("admIn")||{}).value||"").trim();if(!v)return;ADM=v;
+  api("/api/admin/check").then(()=>{lsSet("gjj-admin",ADM);admList=null;closeSheet();toast("进入管理");render();loadAdmin();},()=>{ADM="";toast("口令不对");});}
+ else if("admout" in d){ADM="";admList=null;lsSet("gjj-admin",null);render();toast("退出管理了");}
+ else if(d.admset){if(+d.h===2&&!arm(t,"再点一次删除","删除"))return;
+  api("/api/admin/hide","POST",{id:+d.admset,hidden:+d.h}).then(()=>{const x=(admList||[]).find(y=>y.id===+d.admset);if(x)delete RC[x.pid];toast(+d.h?"删了":"恢复了");loadAdmin();},e=>toast(e.message));}
  else if("add" in d){if(cur){addToCart(cur.id,cur.ci);toast("放进购物车了");}}
  else if("buy" in d){if(cur)openCheckout([{id:cur.id,qty:1,ci:cur.ci}],false);}
  else if("close" in d){closeSheet();}
@@ -735,6 +846,7 @@ $("q").addEventListener("input",e=>{q=e.target.value;renderShop();});
 renderChips();render();
 window.addEventListener("hashchange",()=>{const h=decodeURIComponent(location.hash.slice(1));if(!sheetWrap.hidden)closeSheet();if(BY[h])showProduct(h);else{navDepth=0;leaveProduct();}});
 {const h=decodeURIComponent(location.hash.slice(1));if(BY[h])showProduct(h);}
+if(API&&(S.myReviews.length||S.myQs.length||S.myAns.length))migrate().then(()=>{for(const k in RC)delete RC[k];if(cur)loadBoard(cur.id);});
 setInterval(()=>{if(cur)return;const s=sig();if(s!==lastSig){if(tab!=="shop")render();else{renderTabs();lastSig=s;}}else live();},1000);
 })();
 </script>
