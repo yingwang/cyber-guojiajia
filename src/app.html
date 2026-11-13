@@ -53,6 +53,7 @@ button{font:inherit;color:inherit}
 .card:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:18px}
 .art{aspect-ratio:1;max-width:100%;background:var(--tile);border-radius:18px;display:grid;place-items:center;overflow:hidden;position:relative}
 .art svg{width:76%;height:76%}
+.art img.ph{width:100%;height:100%;object-fit:cover;display:block}
 .flag{position:absolute;top:8px;left:8px;font-size:11px;font-weight:700;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:1px 7px}
 .dots-c{position:absolute;right:8px;bottom:8px;display:flex;gap:3px}
 .dots-c i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--surface)}
@@ -102,6 +103,9 @@ h3 small{font-weight:400;color:var(--muted);font-size:13px}
 .gal::-webkit-scrollbar{display:none}
 .slide{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:16/10;max-width:100%;position:relative}
 .slide>svg{display:block;width:100%;height:100%}
+.slide{overflow:hidden}
+.slide>img{display:block;width:100%;height:100%;object-fit:cover}
+.slide>img.zoom{transform:scale(2.2)}
 .slide .lab{position:absolute;left:10px;bottom:10px;font-size:11px;background:var(--surface);color:var(--muted);border-radius:6px;padding:1px 8px}
 .gdots{display:flex;justify-content:center;gap:6px;margin-top:8px}
 .gdots i{width:6px;height:6px;border-radius:3px;background:var(--line);transition:width .2s,background .2s}
@@ -237,6 +241,8 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
 .pop{left:50%;bottom:24px;z-index:1;display:flex;gap:6px;transform:translate(-50%,40px) scale(.45);opacity:0}
 .pop svg{width:104px;height:104px}
 .pop.many svg{width:72px;height:72px}
+.pop img.ph{width:104px;height:104px;object-fit:cover;border-radius:14px}
+.pop.many img.ph{width:72px;height:72px}
 .glow{left:50%;top:10px;width:180px;height:180px;margin-left:-90px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--tag) 55%,transparent),transparent 65%);opacity:0;transform:scale(.6)}
 .stage.open .lid{transform:translate(-26px,-74px) rotate(-30deg);opacity:0;transition:transform .55s cubic-bezier(.3,.7,.3,1),opacity .4s .25s}
 .stage.open .pop{transform:translate(-50%,-84px) scale(1);opacity:1;transition:transform .75s .25s cubic-bezier(.2,1.4,.4,1),opacity .3s .25s}
@@ -462,7 +468,9 @@ const ART={
  snackpack:c=>`<path d="M12 40 L20 34 H100 L108 40 V86 L100 92 H20 L12 86 Z" fill="${c}"/><circle cx="46" cy="63" r="17" fill="#2A2524"/><circle cx="46" cy="63" r="12" fill="none" stroke="#4A403C" stroke-width="1.5"/><circle cx="70" cy="63" r="17" fill="#2A2524"/><circle cx="70" cy="63" r="12" fill="none" stroke="#4A403C" stroke-width="1.5"/><rect x="20" y="38" width="80" height="4" fill="${H}"/>`
 };
 const inner=(p,ci)=>ART[p.kind]?ART[p.kind](hexOf(p,ci||0)):"";
-const art=(p,ci)=>`<svg viewBox="0 0 120 120" aria-hidden="true">${inner(p,ci)}</svg>`;
+/* the photo site has a real-looking picture per item; it only matches the first colourway */
+const photo=(p,ci)=>(!ci&&PHOTOS[p.id])||null;
+const art=(p,ci)=>{const f=photo(p,ci);return f?`<img class="ph" src="${f.thumb||f.main}" alt="" loading="lazy" decoding="async">`:`<svg viewBox="0 0 120 120" aria-hidden="true">${inner(p,ci)}</svg>`;};
 
 /* gallery pictures (200 x 125) */
 function sceneBg(cat){
@@ -475,7 +483,10 @@ function sceneBg(cat){
  return wall+`<rect y="98" width="200" height="27" fill="#F4F1EA"/>${loop(10,i=>`<rect x="${i*20}" y="98" width="10" height="27" fill="#D9534F" opacity=".55"/>`)}<rect y="104" width="200" height="6" fill="#D9534F" opacity=".35"/><rect y="116" width="200" height="6" fill="#D9534F" opacity=".35"/>`;
 }
 function slides(p,ci){
- const pr=inner(p,ci), nm=p.name.length>11?p.name.slice(0,11)+"…":p.name;
+ const pr=inner(p,ci), nm=p.name.length>11?p.name.slice(0,11)+"…":p.name, f=photo(p,ci);
+ if(f){const im=(src,cls)=>`<img src="${src}"${cls?` class="${cls}"`:""} alt="" loading="lazy" decoding="async">`;
+  return [["主图",im(f.wide)],["场景",im(f.scene)],["细节",im(f.main,"zoom")],
+   ["包装",`<svg viewBox="0 0 200 125" aria-hidden="true"><rect width="200" height="125" class="sc-wall"/><path d="M40 42 L56 26 H144 L160 42 Z" class="krd"/><rect x="40" y="42" width="120" height="72" class="kr"/><rect x="92" y="42" width="16" height="72" class="tapef"/><rect x="46" y="54" width="42" height="34" rx="2" fill="#F3EBDD"/><text x="50" y="64" font-size="5" fill="#5A4A36" font-family="Noto Sans SC,sans-serif">${esc(nm)}</text><text x="50" y="72" font-size="4.2" fill="#8A7A62" font-family="Noto Sans SC,sans-serif">过家家物流</text><text x="50" y="80" font-size="4.2" fill="#8A7A62" font-family="Noto Sans SC,sans-serif">小心轻放 · 易碎</text><image href="${f.main}" x="114" y="48" width="40" height="40" preserveAspectRatio="xMidYMid slice"/><circle cx="132" cy="100" r="9" fill="none" stroke="#C8323A" stroke-width="1.5"/><text x="132" y="102" text-anchor="middle" font-size="5" fill="#C8323A" font-family="Noto Sans SC,sans-serif">已验</text></svg>`]];}
  return [
   ["主图",`<svg viewBox="0 0 200 125" aria-hidden="true"><svg x="45" y="7" width="110" height="110" viewBox="0 0 120 120">${pr}</svg></svg>`],
   ["场景",`<svg viewBox="0 0 200 125" aria-hidden="true">${sceneBg(p.cat)}<svg x="60" y="30" width="80" height="80" viewBox="0 0 120 120">${pr}</svg></svg>`],
