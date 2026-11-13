@@ -510,7 +510,7 @@ const ICON={
 
 /* ---------- time ---------- */
 const HR=3600e3, DAY=24*HR, COOL=7*DAY, ACCEL=720;
-const SPEEDS={flash:{name:"闪电达",sub:"1 分钟",ms:60e3},today:{name:"当日达",sub:"2 小时",ms:2*HR},std:{name:"标准",sub:"2 天",ms:2*DAY}};
+const SPEEDS={flash:{name:"闪电达",sub:"1 分钟",fee:30,ms:60e3},today:{name:"当日达",sub:"2 小时",fee:12,ms:2*HR},std:{name:"标准",sub:"2 天",fee:0,ms:2*DAY}};
 const STAGES=[{t:0,label:"已下单",place:"过家家云仓"},{t:.12,label:"已出库",place:"梦境分拣中心"},{t:.4,label:"运输中",place:"星河干线"},{t:.82,label:"派送中",place:"你家楼下"},{t:1,label:"已送达",place:"门口"}];
 const now=()=>Date.now();
 const dur=o=>{const ms=SPEEDS[o.speed].ms;return (S.fast&&o.speed!=="flash")?Math.max(30e3,ms/ACCEL):ms};
@@ -773,22 +773,24 @@ function toggleLike(k){const pid=cur&&cur.id;if(!pid)return;
 function arm(t,armed,plain){if(t.dataset.armed)return true;t.dataset.armed=1;t.textContent=armed;setTimeout(()=>{if(t.isConnected){delete t.dataset.armed;t.textContent=plain;}},3000);return false;}
 let admTaps=0,admT;
 
-function checkoutBody(){const total=chk.items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
- return `<h2>结算</h2><ul class="mini">${chk.items.map(i=>`<li><span>${esc(BY[i.id].name)}${i.qty>1?` ×${i.qty}`:""} <small>${esc(colorName(BY[i.id],i.ci))}</small></span><span>¥${fmt(BY[i.id].price*i.qty)}</span></li>`).join("")}</ul>
- <h3>怎么送</h3><div class="opts" role="radiogroup" aria-label="配送方式">${Object.entries(SPEEDS).map(([k,v])=>`<button class="opt" role="radio" aria-checked="${chk.speed===k}" data-speed="${k}"><b>${v.name}</b><small>${v.sub}</small></button>`).join("")}</div>
+const goodsOf=items=>items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
+const feeText=f=>f?`¥${fmt(f)}`:"包邮";
+function checkoutBody(){const fee=SPEEDS[chk.speed].fee;
+ return `<h2>结算</h2><ul class="mini">${chk.items.map(i=>`<li><span>${esc(BY[i.id].name)}${i.qty>1?` ×${i.qty}`:""} <small>${esc(colorName(BY[i.id],i.ci))}</small></span><span>¥${fmt(BY[i.id].price*i.qty)}</span></li>`).join("")}<li><span>运费 <small>${SPEEDS[chk.speed].name}</small></span><span>${feeText(fee)}</span></li></ul>
+ <h3>怎么送</h3><div class="opts" role="radiogroup" aria-label="配送方式">${Object.entries(SPEEDS).map(([k,v])=>`<button class="opt" role="radio" aria-checked="${chk.speed===k}" data-speed="${k}"><b>${v.name}</b><small>${v.sub} · ${feeText(v.fee)}</small></button>`).join("")}</div>
  <div class="pay"><div class="cardface" id="cardface"><div class="t">过家家卡<b>∞</b></div><div><div class="num">6222 •••• •••• 1111</div><div class="lim">额度无限 · 不扣一分钱</div></div></div><div class="reader" id="reader"><span>刷这里</span><i></i></div></div>
  <p class="fine">不收真卡号，也不花真钱</p>`;}
-const checkoutFoot=()=>{const total=chk.items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);return `<button class="btn wide" id="payBtn" data-pay>刷卡 ¥${fmt(total)}</button>`;};
+const checkoutFoot=()=>{const total=goodsOf(chk.items)+SPEEDS[chk.speed].fee;return `<button class="btn wide" id="payBtn" data-pay>刷卡 ¥${fmt(total)}</button>`;};
 function openCheckout(items,fromCart){chk={items,fromCart,speed:chk&&chk.speed||"today"};openSheet(checkoutBody(),checkoutFoot());}
 function beep(){try{const A=window.AudioContext||window.webkitAudioContext,a=new A(),o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.value=1320;g.gain.setValueAtTime(.0001,a.currentTime);g.gain.exponentialRampToValueAtTime(.12,a.currentTime+.01);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.16);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.18);setTimeout(()=>a.close(),400);}catch(e){}}
 function pay(){const btn=$("payBtn");if(!btn||btn.disabled)return;btn.disabled=true;
  const c=chk;$("cardface").classList.add("swipe");
  setTimeout(()=>{beep();const r=$("reader");if(r)r.classList.add("ok");},430);
- setTimeout(()=>{const t=now(),d=new Date(t),total=c.items.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
-  const o={no:`GJJ${String(d.getFullYear()).slice(2)}${pad(d.getMonth()+1)}${pad(d.getDate())}${Math.floor(1000+Math.random()*9000)}`,items:c.items.map(i=>({id:i.id,qty:i.qty,ci:i.ci||0})),total,speed:c.speed,placedAt:t,unboxed:false};
+ setTimeout(()=>{const t=now(),d=new Date(t),goods=goodsOf(c.items),fee=SPEEDS[c.speed].fee,total=goods+fee;
+  const o={no:`GJJ${String(d.getFullYear()).slice(2)}${pad(d.getMonth()+1)}${pad(d.getDate())}${Math.floor(1000+Math.random()*9000)}`,items:c.items.map(i=>({id:i.id,qty:i.qty,ci:i.ci||0})),total,fee,speed:c.speed,placedAt:t,unboxed:false};
   S.orders.unshift(o);S.saved+=total;if(c.fromCart)S.cart=[];save();renderTabs();if(tab!=="shop")render();
   setSheet(`<div class="ok-title">刷好了</div><div class="receipt">
-  <div class="r-row"><span>订单号</span><b>${o.no}</b></div><div class="r-row"><span>标价</span><b>¥${fmt(total)}</b></div><div class="r-row"><span>实付</span><b>¥0</b></div>
+  <div class="r-row"><span>订单号</span><b>${o.no}</b></div><div class="r-row"><span>标价</span><b>¥${fmt(goods)}</b></div><div class="r-row"><span>运费</span><b>${feeText(fee)}</b></div><div class="r-row"><span>实付</span><b>¥0</b></div>
   <div class="r-row big"><span>又省下</span><b>¥${fmt(total)}</b></div><div class="r-row"><span>${SPEEDS[o.speed].name} · 预计</span><b>${whenText(t+dur(o))}</b></div></div>`,
   `<button class="btn ghost" data-close>接着逛</button><button class="btn" data-go="track">看快递</button>`);chk=null;},1000);}
 

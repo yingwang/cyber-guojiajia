@@ -1,7 +1,7 @@
 """Build the published pages from src/app.html and the catalog in data/.
 
 prototype.html     the Claude Artifact (no document skeleton; the Artifact host adds one), photo version
-index.html         the original GitHub Pages site, hand-drawn goods
+index.html         the original GitHub Pages site, hand-drawn goods (frozen, no longer rebuilt)
 photo/index.html   the second GitHub Pages site, the same shop with real-looking photos
 Both Pages sites talk to the same shared board.
 """
@@ -63,7 +63,7 @@ def page(artifact):
 
 artifact = render(photos)
 (here / 'prototype.html').write_text(artifact, encoding='utf-8')
-(here / 'index.html').write_text(page(render({})), encoding='utf-8')
+# index.html (the hand-drawn site) is frozen since 2026-11-13; only the photo site is built now.
 (here / 'photo' / 'index.html').write_text(page(artifact), encoding='utf-8')
 print('products', len(base), 'with copy', sum(1 for b in base if b['id'] in content), 'with qa', len(qa),
       'with photos', len(photos), '| prototype', len(artifact))
