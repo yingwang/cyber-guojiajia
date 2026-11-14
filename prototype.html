@@ -772,11 +772,11 @@ function likeBtn(k,base,B,off){const on=B.liked(k);return `<button class="like" 
 function postTool(x,kind,inline){const c=inline?"del in":"del";
  if(x.mine||(API&&ADM))return `<button class="${c}" data-del="${x.id}" data-dk="${kind}">删除</button>`;
  return API?`<button class="${c}" data-rep="${x.id}">举报</button>`:"";}
-const MINE='<span class="mine">我的</span>',SAMPLE='<span class="demo">示例</span>';
+const MINE='<span class="mine">我的</span>',SAMPLE=''; // the shop's own reviews and answers carry no tag; one line above the reviews says they are made up
 function rvHtml(nick,av,s,meta,text,follow,chip,act){return `<div class="rv"><div class="av" style="background:${av}">${esc([...nick][0]||"客")}</div><div><div class="rv-top"><b>${esc(nick)}${chip}</b>${stars(s)}</div><div class="rv-meta">${esc(meta)}</div><p>${esc(text)}</p>${follow?`<div class="follow"><em>追评</em>${esc(follow)}</div>`:""}<div class="rv-act">${act}</div></div></div>`;}
 function reviewsSection(p){const B=board(p.id),o=owns(p.id),done=B.reviews.some(r=>r.mine)||(API&&reviewed(p.id));
  const act=o&&!done?`<button class="btn sm" data-write="${p.id}" data-wci="${o.ci||0}">写评价</button>`:(!o?`<span class="note">收到包裹后能写评价</span>`:"");
- return `<div class="sec-head"><h3>买家评价 <small>${p.sold+B.reviews.length} 条</small></h3>${act}</div><div class="rv-head"><div class="rv-score">${p.rating.toFixed(1)}</div><div>${stars(Math.round(p.rating))}<div class="rv-note">标「示例」的评价是虚构的，商品名均为谐音</div></div></div>`+
+ return `<div class="sec-head"><h3>买家评价 <small>${p.sold} 条</small></h3>${act}</div><div class="rv-head"><div class="rv-score">${p.rating.toFixed(1)}</div><div>${stars(Math.round(p.rating))}<div class="rv-note">商品名均为谐音，自带的评价和问答是虚构的</div></div></div>`+
   (B.err?`<p class="board-note">大家的评价暂时没连上</p>`:"")+
   B.reviews.map(r=>{const k=API?"r:"+r.id:r.id;return rvHtml(r.nick,API?okColor(r.color):AVC[hashStr(r.nick)%AVC.length],r.stars,agoText(r.t)+" · "+colorName(p,r.ci),r.text,"",r.mine?MINE:"",likeBtn(k,0,B,API&&r.mine)+postTool(r,"r"));}).join("")+
   p.reviews.map((r,i)=>{const k=`s:${p.id}:${i}`;return rvHtml(r.nick,AVC[hashStr(r.nick)%AVC.length],r.stars,(r.ago||"")+(r.color?" · "+r.color:""),r.text,r.follow,SAMPLE,likeBtn(k,3+hashStr(p.id+i)%160,B));}).join("");}
