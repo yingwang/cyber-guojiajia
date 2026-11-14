@@ -1,0 +1,6 @@
+name = "gjj-site"
+main = "src/index.js"
+compatibility_date = "2026-05-01"
+# Served only on the short address; the workers.dev address would expose the account subdomain.
+workers_dev = false
+routes = [{ pattern = "gjj.yingwang.dev", custom_domain = true }]

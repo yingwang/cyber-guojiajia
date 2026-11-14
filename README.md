@@ -2,7 +2,7 @@
 
 挑货、刷卡、等快递、拆箱，一分钱不花。
 
-在线玩：https://yingwang.github.io/cyber-guojiajia/
+在线玩：https://gjj.yingwang.dev/
 
 商品名都是谐音的玩具货，与真实品牌无关。自带的评价和问答是虚构的；其余是玩家自己写的，大家都看得见。
 

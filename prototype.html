@@ -35,10 +35,13 @@ button{font:inherit;color:inherit}
 /* header */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px}
 .brand{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.logo{font-family:var(--f-display);font-size:28px;line-height:1;letter-spacing:1px}
+.logo{font-family:var(--f-display);font-size:28px;line-height:1;letter-spacing:1px;white-space:nowrap}
 .logo i{font-style:normal;color:var(--accent)}
 .saved-pill{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px;white-space:nowrap}
 .saved-pill b{font-family:var(--f-num);color:var(--ink);font-size:13px;margin-left:4px}
+.brand-r{display:flex;align-items:center;gap:8px;min-width:0}
+.acct{appearance:none;border:0;cursor:pointer;min-width:0;font:inherit;font-size:13px;font-weight:700;border-radius:999px;padding:6px 14px;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
+.acct.in{background:var(--surface);color:var(--ink);border:1px solid var(--line);padding:5px 12px;font-weight:600;max-width:9em;overflow:hidden;text-overflow:ellipsis}
 .search{display:flex;align-items:center;gap:8px;margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 12px;height:42px}
 .search:focus-within{border-color:var(--accent)}
 .search svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2;flex:none}
@@ -350,16 +353,18 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
 @media (min-width:900px){
   .app{max-width:1200px;padding-left:32px;padding-right:32px;padding-block:0 64px}
   .hbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;position:sticky;top:0;z-index:5;background:var(--bg);padding-block:16px 14px}
-  .top,.brand,#shopTools{display:contents}
+  .top,.brand,.brand-r,#shopTools{display:contents}
+  .acct{order:5}
   .logo{order:1;flex:none;font-size:30px;cursor:pointer;margin-right:6px}
-  .search{order:2;flex:1 1 150px;max-width:440px;margin-top:0}
+  .search{order:2;flex:1 1 120px;min-width:0;max-width:440px;margin-top:0}
+  .acct.in{max-width:7em}
   .tabs{order:3;position:static;margin-left:auto;background:transparent;border:0;padding:0}
   .tabs-in{max-width:none;margin:0;padding:0;display:flex;gap:2px}
   .tab{flex-direction:row;gap:6px;padding:8px 12px;font-size:14px;border-radius:10px}
   .tab svg{width:20px;height:20px}
   .tab .badge{position:static}
   .saved-pill{order:4}
-  .chips{order:5;flex:0 0 100%;margin-top:2px}
+  .chips{order:6;flex:0 0 100%;margin-top:2px}
 
   .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:28px 20px;padding-top:10px}
   .count{margin:6px 0 4px}
@@ -401,6 +406,7 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
   .sh-foot{padding:12px 24px 16px}
 }
 @media (min-width:1100px){.grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media (min-width:900px) and (max-width:1099px){.tab{padding-inline:9px}}
 @media (hover:hover){
   .art img.ph{transition:transform .35s cubic-bezier(.2,.8,.2,1)}
   .card:hover .art img.ph{transform:scale(1.05)}
@@ -416,7 +422,7 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
   <header class="top" id="top">
     <div class="brand">
       <div class="logo" data-tab="shop">赛博<i>过家家</i></div>
-      <div class="saved-pill">已省<b id="savedPill">¥0</b></div>
+      <div class="brand-r"><div class="saved-pill">已省<b id="savedPill">¥0</b></div><button class="acct" id="acctBtn" hidden></button></div>
     </div>
     <div id="shopTools">
       <label class="search" for="q"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="搜 Lphone、口红、香槟" autocomplete="off" enterkeyhint="search"></label>
@@ -627,6 +633,14 @@ function mergeState(acct,dev){const s=norm(JSON.parse(JSON.stringify(acct))),k=i
  ["favs","rep"].forEach(n=>dev[n].forEach(v=>{if(!s[n].includes(v))s[n].push(v)}));Object.assign(s.likes,dev.likes);
  ["myReviews","myQs","myAns"].forEach(n=>dev[n].forEach(v=>{if(!s[n].some(y=>y.at===v.at))s[n].push(v)}));
  return s;}
+// The old address (yingwang.github.io/cyber-guojiajia) forwards here once with that browser's progress in the fragment,
+// which never reaches a server. Take it in, then wipe it from the address bar.
+{const h=location.hash.slice(1),m=/(?:^|&)carry=([^&]*)/.exec(h);
+ if(m){try{const d=JSON.parse(decodeURIComponent(m[1])),st=d["gjj-state-v2"]?JSON.parse(d["gjj-state-v2"]):null;
+  if(st&&Array.isArray(st.cart)&&Array.isArray(st.orders)){const c=norm(st);S=S.at?mergeState(S,c):c;localStorage.setItem(KEY,JSON.stringify(S));}
+  if(d["gjj-me"]&&!localStorage.getItem("gjj-me"))localStorage.setItem("gjj-me",d["gjj-me"]);}catch(e){}
+  const rest=h.replace(/(^|&)carry=[^&]*/,"").replace(/^&/,"");
+  history.replaceState(null,"",location.pathname+location.search+(rest?"#"+rest:""));}}
 let tab="shop",cat="全部",q="",lastSig="",chk=null,resetArm=false,cur=null;
 
 /* ---------- shared board ----------
@@ -678,7 +692,7 @@ async function acDo(kind){const btn=sheet.querySelector(".sh-foot .btn");if(btn)
  }catch(e){if(btn)btn.disabled=false;toast(e.message);}}
 async function logoutAcct(){try{await pushState();}catch(e){}try{await api("/api/account/logout","POST");}catch(e){}
  ME=null;saveMe();S=fresh();save();for(const k in RC)delete RC[k];render();toast("退出了");}
-function refreshMe(){if(!API||!ME)return;api("/api/me").then(j=>{Object.assign(ME,{nick:j.nick,color:j.color,counts:j.counts,reviewed:j.reviewed,user:j.user||undefined});saveMe();if(tab==="me"&&!cur&&sheetWrap.hidden)rerenderKeep();},()=>{});}
+function refreshMe(){if(!API||!ME)return;api("/api/me").then(j=>{Object.assign(ME,{nick:j.nick,color:j.color,counts:j.counts,reviewed:j.reviewed,user:j.user||undefined});saveMe();renderTabs();if(tab==="me"&&!cur&&sheetWrap.hidden)rerenderKeep();},()=>{});}
 function loadBoard(pid){if(!API)return;const c=RC[pid]||(RC[pid]={});if(c.loading)return;c.loading=true;
  api("/api/p/"+encodeURIComponent(pid)).then(j=>{c.posts=j.posts;c.likes=j.likes;c.liked=new Set(j.liked);c.err=false;},()=>{c.err=true;})
  .finally(()=>{c.loading=false;if(cur&&cur.id===pid)refreshBoard();});}
@@ -718,6 +732,8 @@ const isFav=id=>S.favs.includes(id);
 function renderTabs(){
  const n=S.cart.reduce((a,i)=>a+i.qty,0), ready=S.orders.filter(o=>prog(o)>=1&&!o.unboxed).length;
  $("savedPill").textContent="¥"+fmt(S.saved);
+ const ab=$("acctBtn");ab.hidden=!API;
+ if(API){const on=signedIn();ab.className=on?"acct in":"acct";ab.textContent=on?ME.user:"登录";ab.toggleAttribute("data-login",!on);if(on)ab.dataset.tab="me";else delete ab.dataset.tab;}
  const ti=$("tabs");
  if(cur&&!wide()){ti.className="tabs-in pf";
   ti.innerHTML=`<button class="pf-ic" data-fav="${cur.id}" aria-pressed="${isFav(cur.id)}">${SV_HEART}收藏</button><button class="pf-ic" data-tab="cart"><svg viewBox="0 0 24 24">${ICON.cart}</svg>购物车${n?`<span class="badge" style="left:calc(50% + 4px)">${n}</span>`:""}</button><button class="btn ghost" data-add>加入购物车</button><button class="btn" data-buy>立即买</button>`;return;}
@@ -777,7 +793,7 @@ function renderMe(){
  <h3>收藏 <small>${S.favs.length} 件</small></h3>
  ${S.favs.length?`<div class="grid">${S.favs.filter(id=>BY[id]).map(id=>card(BY[id])).join("")}</div>`:`<div class="none">在商品页点心形就能收藏</div>`}</div>
  <div class="me-set"><h3 data-adm>设置</h3>
- ${API?`<div class="setrow"><div><b>账户</b><p>${signedIn()?esc(ME.user):"登录后换设备也能接着逛"}</p></div>${signedIn()?`<button class="btn sm ghost" data-logout>退出</button>`:`<button class="btn sm ghost" data-login>登录</button>`}</div>`:""}
+ ${API?`<div class="setrow"><div><b>账户</b><p>${signedIn()?esc(ME.user):"登录后换设备也能接着逛"}</p></div>${signedIn()?`<button class="btn sm ghost" data-logout>退出</button>`:`<button class="btn sm" data-login>登录</button>`}</div>`:""}
  ${API?`<div class="setrow"><div><b>昵称</b><p>${ME?esc(ME.nick):"第一次发言时随机起一个"}</p></div><button class="btn sm ghost" data-nick>改</button></div>`:""}
  <div class="setrow"><div><b>体验模式</b><p>时间快 720 倍，快递几分钟到，冷静期十几分钟满</p></div><button class="sw" role="switch" aria-checked="${S.fast}" aria-label="体验模式" data-fast></button></div>
  <button class="btn ghost wide reset" data-reset>${resetArm?"再点一次，全部清空":"清空重来"}</button>

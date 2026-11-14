@@ -1,8 +1,9 @@
 """Build the published pages from src/app.html and the catalog in data/.
 
 prototype.html       the Claude Artifact (no document skeleton; the Artifact host adds one)
-index.html           the GitHub Pages site: the shop with real-looking photos (the main site since 2026-11-14)
-photo/index.html     the photo shop's first address; now only forwards to the root, keeping the #product part
+app.html             the shop with real-looking photos, served as the front page of gjj.yingwang.dev by the gjj-site Worker
+index.html           the old address (yingwang.github.io/cyber-guojiajia/); forwards to gjj.yingwang.dev, carrying progress once
+photo/index.html     the photo shop's first address; forwards to the root, keeping the #product part
 classic/index.html   the original hand-drawn shop (frozen since 2026-11-13, never rebuilt)
 The pictures stay in photo/img. Every page talks to the same shared board.
 """
@@ -82,12 +83,26 @@ def page(artifact):
 
 artifact = render(photos)
 (here / 'prototype.html').write_text(artifact, encoding='utf-8')
-# The root page sits one level above photo/, so its picture paths get the folder in front.
+# The site lives at SITE, where the gjj-site Worker (site/) serves app.html as the front page and passes every other path
+# through to GitHub Pages. app.html sits one level above photo/, so its picture paths get the folder in front.
+SITE = 'https://gjj.yingwang.dev/'
 root_photos = {pid: {k: 'photo/' + v for k, v in f.items()} for pid, f in photos.items()}
-(here / 'index.html').write_text(page(render(root_photos)), encoding='utf-8')
+(here / 'app.html').write_text(page(render(root_photos)), encoding='utf-8')
+# The old address forwards to SITE. A browser with progress there carries it along once, in the fragment (never sent to
+# a server); the shop page merges it in and wipes the fragment.
+(here / 'index.html').write_text(
+    '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n<title>赛博过家家</title>\n'
+    '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+    f'<link rel="canonical" href="{SITE}">\n'
+    '<script>(function(){var N="' + SITE + '",h=location.hash.slice(1).replace(/(^|&)carry=[^&]*/,"").replace(/^&/,""),c="";\n'
+    'try{if(!localStorage.getItem("gjj-moved")){var d={},k=["gjj-state-v2","gjj-me"];for(var i=0;i<k.length;i++){var v=localStorage.getItem(k[i]);if(v)d[k[i]]=v;}\n'
+    ' if(d["gjj-state-v2"]||d["gjj-me"])c="carry="+encodeURIComponent(JSON.stringify(d));localStorage.setItem("gjj-moved","1");}}catch(e){}\n'
+    'var f=[h,c].filter(Boolean).join("&");location.replace(N+(f?"#"+f:""));})();</script>\n'
+    f'<noscript><meta http-equiv="refresh" content="0;url={SITE}"></noscript>\n</head>\n'
+    f'<body><a href="{SITE}">赛博过家家搬到了 gjj.yingwang.dev</a></body>\n</html>\n', encoding='utf-8')
 (here / 'photo' / 'index.html').write_text(
     '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n<title>赛博过家家</title>\n'
-    '<link rel="canonical" href="https://yingwang.github.io/cyber-guojiajia/">\n'
+    f'<link rel="canonical" href="{SITE}">\n'
     '<script>location.replace("../" + location.hash)</script>\n'
     '<meta http-equiv="refresh" content="0;url=../">\n</head>\n'
     '<body><a href="../">赛博过家家</a></body>\n</html>\n', encoding='utf-8')
