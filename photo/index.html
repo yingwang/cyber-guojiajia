@@ -12,8 +12,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@500;700&family=ZCOOL+KuaiLe&display=swap">
 <style>
-/* Layout: one phone-width column. Sticky shop header (search + aisles), a two-up shelf of toy-tagged goods,
+/* Layout, phones: one column. Sticky shop header (search + aisles), a two-up shelf of toy-tagged goods,
    a fixed four-tab bar, and bottom sheets (scrolling body + pinned footer) for product, checkout, unboxing.
+   Layout, 900px and wider (see the media block at the end): one top bar holding logo, search and the menu,
+   a four- or five-up shelf, two-column product, cart and profile pages, and sheets shown as centred dialogs.
    Kraft parcels and yellow price tags carry the identity. */
 :root{
   --bg:#EDF0F6; --surface:#FFFFFF; --tile:#E1E7F1; --ink:#17203A; --muted:#5C6684; --line:#D2D9E6;
@@ -277,6 +279,7 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
 .keep{font-size:12px;color:var(--ok)}
 .setrow{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
 .setrow p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.setrow+.setrow{margin-top:10px}
 .sw{flex:none;cursor:pointer;width:48px;height:28px;border-radius:14px;background:var(--line);position:relative;border:0;padding:0}
 .sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);transition:left .2s}
 .sw[aria-checked="true"]{background:var(--ok)}
@@ -345,14 +348,82 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
 .adm .acts{display:flex;gap:14px}
 .adm .acts .del{margin-top:4px}
 
+/* pieces that only wide screens show */
+[hidden]{display:none!important}
+.hbar{display:contents}
+.gthumbs,.pg-buy{display:none}
+
+/* wide screens */
+@media (min-width:900px){
+  .app{max-width:1200px;padding-left:32px;padding-right:32px;padding-block:0 64px}
+  .hbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;position:sticky;top:0;z-index:5;background:var(--bg);padding-block:16px 14px}
+  .top,.brand,#shopTools{display:contents}
+  .logo{order:1;flex:none;font-size:30px;cursor:pointer;margin-right:6px}
+  .search{order:2;flex:1 1 150px;max-width:440px;margin-top:0}
+  .tabs{order:3;position:static;margin-left:auto;background:transparent;border:0;padding:0}
+  .tabs-in{max-width:none;margin:0;padding:0;display:flex;gap:2px}
+  .tab{flex-direction:row;gap:6px;padding:8px 12px;font-size:14px;border-radius:10px}
+  .tab svg{width:20px;height:20px}
+  .tab .badge{position:static}
+  .saved-pill{order:4}
+  .chips{order:5;flex:0 0 100%;margin-top:2px}
+
+  .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:28px 20px;padding-top:10px}
+  .count{margin:6px 0 4px}
+  .sec-title{font-size:26px;margin-top:14px}
+  .toast{bottom:32px}
+
+  .pbar{position:static;padding-block:6px 14px}
+  .pbar .ptitle,.pbar [data-fav]{display:none}
+  .pg-top{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:44px;align-items:start}
+  .pg-buybox h2{font-size:32px;margin-top:4px}
+  .gdots{display:none}
+  .gthumbs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+  .gthumb{all:unset;cursor:pointer;aspect-ratio:16/10;border-radius:10px;overflow:hidden;background:var(--tile);box-shadow:0 0 0 1.5px var(--line)}
+  .gthumb.on{box-shadow:0 0 0 2px var(--accent)}
+  .gthumb:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .gthumb>img,.gthumb>svg{display:block;width:100%;height:100%;object-fit:cover}
+  .gthumb>img.zoom{transform:scale(2.2)}
+  .pg-buy{display:flex;align-items:center;margin-top:28px;max-width:440px}
+  .pg-buy .icon-btn{width:46px;height:46px}
+  .pg-more{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:start;margin-top:12px}
+
+  .cartpg{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:36px;align-items:start}
+  .cartpg .sum{margin-top:12px;position:sticky;top:96px;flex-direction:column;align-items:stretch;gap:16px;padding:20px}
+  .line{grid-template-columns:88px minmax(0,1fr) auto;gap:16px;padding:16px 0}
+  .parcels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:12px}
+  .parcels .parcel{margin-top:0}
+  .mepg{display:grid;grid-template-columns:340px minmax(0,1fr);grid-template-rows:auto 1fr;gap:0 44px;align-items:start}
+  .mepg>.jar{grid-column:1;grid-row:1}
+  .me-set{grid-column:1;grid-row:2}
+  .me-main{grid-column:2;grid-row:1/3}
+  .me-main>h3:first-child{margin-top:8px}
+  .owned,.me-main .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+  .sheet-wrap{align-items:center;padding:24px}
+  .sheet{max-width:480px;max-height:min(100%,780px);border-radius:22px;transform:translateY(18px);opacity:0;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .2s}
+  .sheet-wrap.show .sheet{opacity:1}
+  .grab{display:none}
+  .sh-body,.sh-body.has-foot{padding:22px 24px 20px}
+  .sh-foot{padding:12px 24px 16px}
+}
+@media (min-width:1100px){.grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media (hover:hover){
+  .art img.ph{transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+  .card:hover .art img.ph{transform:scale(1.05)}
+  .tab:hover{color:var(--ink)}
+  .chip-btn[aria-pressed="false"]:hover{border-color:var(--ink);color:var(--ink)}
+}
+
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;transition-delay:0s!important}}
 </style>
 </head>
 <body>
 <div class="app">
+  <div class="hbar">
   <header class="top" id="top">
     <div class="brand">
-      <div class="logo">赛博<i>过家家</i></div>
+      <div class="logo" data-tab="shop">赛博<i>过家家</i></div>
       <div class="saved-pill">已省<b id="savedPill">¥0</b></div>
     </div>
     <div id="shopTools">
@@ -360,10 +431,10 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
       <div class="chips" id="chips"></div>
     </div>
   </header>
+  <nav class="tabs" aria-label="主菜单"><div class="tabs-in" id="tabs"></div></nav>
+  </div>
   <main id="view"></main>
 </div>
-
-<nav class="tabs" aria-label="主菜单"><div class="tabs-in" id="tabs"></div></nav>
 
 <div class="sheet-wrap" id="sheetWrap" hidden>
   <div class="scrim" data-close></div>
@@ -598,6 +669,8 @@ async function migrate(){if(!API||!(S.myReviews.length||S.myQs.length||S.myAns.l
 /* ---------- elements ---------- */
 const $=id=>document.getElementById(id);
 const view=$("view"),sheetWrap=$("sheetWrap"),sheet=$("sheet");
+// Wide screens keep the header on every page and put the buy buttons inside the product page.
+const MQ=window.matchMedia?matchMedia("(min-width:900px)"):null,wide=()=>!!(MQ&&MQ.matches);
 
 function renderChips(){$("chips").innerHTML=CATS.map(c=>`<button class="chip-btn" data-cat="${c}" aria-pressed="${c===cat}">${c}</button>`).join("");}
 const SV_BACK='<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>';
@@ -608,11 +681,11 @@ function renderTabs(){
  const n=S.cart.reduce((a,i)=>a+i.qty,0), ready=S.orders.filter(o=>prog(o)>=1&&!o.unboxed).length;
  $("savedPill").textContent="¥"+fmt(S.saved);
  const ti=$("tabs");
- if(cur){ti.className="tabs-in pf";
+ if(cur&&!wide()){ti.className="tabs-in pf";
   ti.innerHTML=`<button class="pf-ic" data-fav="${cur.id}" aria-pressed="${isFav(cur.id)}">${SV_HEART}收藏</button><button class="pf-ic" data-tab="cart"><svg viewBox="0 0 24 24">${ICON.cart}</svg>购物车${n?`<span class="badge" style="left:calc(50% + 4px)">${n}</span>`:""}</button><button class="btn ghost" data-add>加入购物车</button><button class="btn" data-buy>立即买</button>`;return;}
  ti.className="tabs-in";
  const T=[["shop","逛逛",0],["cart","购物车",n],["track","快递",ready],["me","我的",0]];
- ti.innerHTML=T.map(([k,l,b])=>`<button class="tab" data-tab="${k}" ${tab===k?'aria-current="page"':""}><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}${b?`<span class="badge">${b}</span>`:""}</button>`).join("");
+ ti.innerHTML=T.map(([k,l,b])=>`<button class="tab" data-tab="${k}" ${!cur&&tab===k?'aria-current="page"':""}><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}${b?`<span class="badge">${b}</span>`:""}</button>`).join("");
 }
 
 /* shop */
@@ -625,8 +698,8 @@ const EMPTY=`<svg viewBox="0 0 160 120" aria-hidden="true"><path d="M20 50 L80 3
 function renderCart(){
  if(!S.cart.length){view.innerHTML=`<h2 class="sec-title">购物车</h2><div class="empty">${EMPTY}<div>空空的</div><button class="btn sm" data-tab="shop">去逛逛</button></div>`;return;}
  const total=S.cart.reduce((a,i)=>a+BY[i.id].price*i.qty,0);
- view.innerHTML=`<h2 class="sec-title">购物车</h2>${S.cart.map((i,k)=>{const p=BY[i.id];return `<div class="line"><div class="art" data-open="${p.id}" style="cursor:pointer">${art(p,i.ci)}</div><div><div class="nm">${esc(p.name)}</div><div class="meta">${esc(colorName(p,i.ci))}</div><span class="tag"><small>¥</small>${fmt(p.price)}</span></div><div class="step"><button data-dec="${k}" aria-label="减一件">−</button><span>${i.qty}</span><button data-inc="${k}" aria-label="加一件">+</button></div></div>`}).join("")}
- <div class="sum"><div><div class="label">合计</div><div class="total">¥${fmt(total)}</div></div><button class="btn" style="flex:none" data-checkout="cart">去结算</button></div>`;
+ view.innerHTML=`<h2 class="sec-title">购物车</h2><div class="cartpg"><div class="cart-list">${S.cart.map((i,k)=>{const p=BY[i.id];return `<div class="line"><div class="art" data-open="${p.id}" style="cursor:pointer">${art(p,i.ci)}</div><div><div class="nm">${esc(p.name)}</div><div class="meta">${esc(colorName(p,i.ci))}</div><span class="tag"><small>¥</small>${fmt(p.price)}</span></div><div class="step"><button data-dec="${k}" aria-label="减一件">−</button><span>${i.qty}</span><button data-inc="${k}" aria-label="加一件">+</button></div></div>`}).join("")}</div>
+ <div class="sum"><div><div class="label">合计</div><div class="total">¥${fmt(total)}</div></div><button class="btn" style="flex:none" data-checkout="cart">去结算</button></div></div>`;
 }
 
 /* track */
@@ -642,7 +715,7 @@ function parcel(o){
  ${done&&!o.unboxed?`<button class="btn wide" data-unbox="${o.no}">拆箱</button>`:""}</article>`;
 }
 function whereText(o){const p=prog(o),c=stageOf(p);return p<1?`<b>${STAGES[c].place}</b> · 还要 ${fmtDur(o.placedAt+dur(o)-now())}`:o.unboxed?`已收进家当`:`<b>到门口了</b> · 去拆吧`;}
-function renderTrack(){view.innerHTML=`<h2 class="sec-title">快递</h2>`+(S.orders.length?S.orders.map(parcel).join(""):`<div class="empty">${EMPTY}<div>还没有包裹</div><button class="btn sm" data-tab="shop">去逛逛</button></div>`);}
+function renderTrack(){view.innerHTML=`<h2 class="sec-title">快递</h2>`+(S.orders.length?`<div class="parcels">${S.orders.map(parcel).join("")}</div>`:`<div class="empty">${EMPTY}<div>还没有包裹</div><button class="btn sm" data-tab="shop">去逛逛</button></div>`);}
 
 /* me */
 function jarSvg(){const lv=S.saved<=0?0:Math.max(.08,Math.min(1,Math.log10(S.saved)/6)),h=Math.round(72*lv);let edges="";for(let y=104;y>104-h;y-=8)edges+=`<ellipse cx="48" cy="${y}" rx="27" ry="3" class="coin-edge"/>`;
@@ -658,24 +731,25 @@ function admHtml(){if(!admList)return `<p class="hint">读取中…</p>`;if(!adm
  return admList.map(x=>{const p=BY[x.pid];return `<div class="adm"><div class="meta">${esc(p?p.name:x.pid)} · ${{r:"评价",q:"提问",a:"回答"}[x.kind]||""} · ${esc(x.nick)} · ${x.hidden===2?"已删":x.hidden===1?"已自动隐藏":"显示中"} · 举报 ${x.reports}</div><p>${esc(x.text)}</p><div class="acts">${x.hidden?`<button class="del" data-admset="${x.id}" data-h="0">恢复</button>`:""}${x.hidden!==2?`<button class="del" data-admset="${x.id}" data-h="2">删除</button>`:""}</div></div>`;}).join("");}
 function loadAdmin(){if(!API||!ADM)return;api("/api/admin/reported").then(j=>{admList=j.posts;if(tab==="me"&&!cur&&$("admList"))$("admList").innerHTML=admHtml();},e=>{if(e.status===403){ADM="";lsSet("gjj-admin",null);if(tab==="me"&&!cur)rerenderKeep();}});}
 function renderMe(){
- view.innerHTML=`<h2 class="sec-title">我的</h2>
+ view.innerHTML=`<h2 class="sec-title">我的</h2><div class="mepg">
  <section class="jar">${jarSvg()}<div><div class="label">一共省下</div><div class="big">¥${fmt(S.saved)}</div><div class="subline">下单 ${S.orders.length} 次 · 拆箱 ${S.unboxCount} 个 · 评价 ${myReviewCount()} 条</div></div></section>
- <h3>家当 <small>${S.owned.reduce((a,x)=>a+x.qty,0)} 件</small></h3>
+ <div class="me-main"><h3>家当<small>${S.owned.reduce((a,x)=>a+x.qty,0)} 件</small></h3>
  <p class="hint">到手七天还惦记，再去买真的。</p>
  ${S.owned.length?`<div class="owned">${S.owned.map(ownCard).join("")}</div>`:`<div class="none">拆了箱的东西会摆在这里</div>`}
  <h3>收藏 <small>${S.favs.length} 件</small></h3>
- ${S.favs.length?`<div class="grid">${S.favs.filter(id=>BY[id]).map(id=>card(BY[id])).join("")}</div>`:`<div class="none">在商品页点心形就能收藏</div>`}
- <h3 data-adm>设置</h3>
+ ${S.favs.length?`<div class="grid">${S.favs.filter(id=>BY[id]).map(id=>card(BY[id])).join("")}</div>`:`<div class="none">在商品页点心形就能收藏</div>`}</div>
+ <div class="me-set"><h3 data-adm>设置</h3>
  ${API?`<div class="setrow"><div><b>昵称</b><p>${ME?esc(ME.nick):"第一次发言时随机起一个"}</p></div><button class="btn sm ghost" data-nick>改</button></div>`:""}
  <div class="setrow"><div><b>体验模式</b><p>时间快 720 倍，快递几分钟到，冷静期十几分钟满</p></div><button class="sw" role="switch" aria-checked="${S.fast}" aria-label="体验模式" data-fast></button></div>
  <button class="btn ghost wide reset" data-reset>${resetArm?"再点一次，全部清空":"清空重来"}</button>
- ${API&&ADM?`<h3>管理 <small>被举报的</small></h3><div id="admList">${admHtml()}</div><button class="btn ghost wide reset" data-admout>退出管理</button>`:""}`;
+ ${API&&ADM?`<h3>管理 <small>被举报的</small></h3><div id="admList">${admHtml()}</div><button class="btn ghost wide reset" data-admout>退出管理</button>`:""}</div></div>`;
 }
 
 /* ---------- views ---------- */
 function sig(){return tab+"|"+S.fast+"|"+S.orders.map(o=>o.no+(prog(o)>=1?1:0)+(o.unboxed?1:0)).join()+"|"+S.owned.map(x=>(coolLeft(x)>0?0:1)+(x.enough?1:0)).join();}
 function render(){
- $("top").hidden=!!cur; $("shopTools").hidden=!!cur||tab!=="shop";
+ const w=wide(),off=!!cur||tab!=="shop";
+ $("top").hidden=!!cur&&!w; $("shopTools").hidden=!w&&off; $("chips").hidden=w&&off;
  if(cur)view.innerHTML=productPage();
  else if(tab==="shop")renderShop(); else if(tab==="cart")renderCart(); else if(tab==="track")renderTrack(); else renderMe();
  renderTabs(); lastSig=sig(); if(cur)wireGallery();
@@ -726,17 +800,20 @@ function qaSection(p){const B=board(p.id),qs=QA[p.id]||[];
   qs.map((x,i)=>qaItem(p,B,`s:${p.id}:${i}`,{text:x.q,nick:x.nick,ago:x.ago,sample:x.answers||[]})).join("");}
 function productBody(){const p=BY[cur.id],ci=cur.ci,o=compareSet(p),sl=slides(p,ci);
  const row=(x,me)=>{const d=x.price-p.price;return `<tr class="${me?"me":""}" ${me?"":`data-open="${x.id}"`}><td>${esc(x.name)}</td><td class="n">¥${fmt(x.price)}${me?"":`<span class="d ${d>0?"up":"down"}">${d>0?"贵":"省"} ¥${fmt(Math.abs(d))}</span>`}</td><td class="n">★ ${x.rating.toFixed(1)}</td><td class="n">${x.sold}</td></tr>`};
- return `<div class="gal" id="gal">${sl.map(([lab,svg])=>`<div class="slide">${svg}<span class="lab">${lab}</span></div>`).join("")}</div>
+ return `<div class="pg-top"><div class="pg-media"><div class="gal" id="gal">${sl.map(([lab,svg])=>`<div class="slide">${svg}<span class="lab">${lab}</span></div>`).join("")}</div>
  <div class="gdots" id="gdots">${sl.map((_,i)=>`<i class="${i===0?"on":""}"></i>`).join("")}</div>
- <h2>${esc(p.name)}</h2><p class="blurb">${esc(p.blurb)} · ★ ${p.rating.toFixed(1)} · ${p.sold} 人买过</p>
+ <div class="gthumbs" id="gthumbs">${sl.map(([lab,svg],i)=>`<button class="gthumb${i===0?" on":""}" data-slide="${i}" aria-label="${lab}">${svg}</button>`).join("")}</div></div>
+ <div class="pg-buybox"><h2>${esc(p.name)}</h2><p class="blurb">${esc(p.blurb)} · ★ ${p.rating.toFixed(1)} · ${p.sold} 人买过</p>
  <div class="pricebar"><span class="tag big"><small>¥</small>${fmt(p.price)}</span>${p.was?`<s>¥${fmt(p.was)}</s><span class="flag" style="position:static">返场价</span>`:""}</div>
  ${p.colors.length>1?`<div class="swatches"><span>颜色：${esc(colorName(p,ci))}</span>${p.colors.map((c,i)=>`<button class="swc" style="background:${c[1]}" data-ci="${i}" aria-pressed="${i===ci}" aria-label="${esc(c[0])}"></button>`).join("")}</div>`:""}
- <h3>详情</h3><p class="desc">${esc(p.desc)}</p>${p.points.length?`<ul class="points">${p.points.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:""}
- ${p.specs.length?`<h3>参数</h3><table class="specs"><tbody>${p.specs.map(([k,v])=>`<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join("")}</tbody></table>`:""}
- <h3>比一比</h3><div class="cmp-wrap"><table class="cmp"><thead><tr><th>商品</th><th>价格</th><th>评分</th><th>买过</th></tr></thead><tbody>${row(p,true)}${o.map(x=>row(x,false)).join("")}</tbody></table></div>
- <div id="board">${reviewsSection(p)}${qaSection(p)}</div>`;}
+ <div class="actions pg-buy"><button class="btn ghost" data-add>加入购物车</button><button class="btn" data-buy>立即买</button><button class="icon-btn" data-fav="${p.id}" aria-pressed="${isFav(p.id)}" aria-label="收藏">${SV_HEART}</button></div>
+ <h3>详情</h3><p class="desc">${esc(p.desc)}</p>${p.points.length?`<ul class="points">${p.points.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:""}</div></div>
+ <div class="pg-more"><div class="pg-detail"> ${p.specs.length?`<h3>参数</h3><table class="specs"><tbody>${p.specs.map(([k,v])=>`<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join("")}</tbody></table>`:""}
+ <h3>比一比</h3><div class="cmp-wrap"><table class="cmp"><thead><tr><th>商品</th><th>价格</th><th>评分</th><th>买过</th></tr></thead><tbody>${row(p,true)}${o.map(x=>row(x,false)).join("")}</tbody></table></div></div>
+ <div id="board">${reviewsSection(p)}${qaSection(p)}</div></div>`;}
 function productPage(){return `<div class="pbar"><button class="icon-btn" data-back aria-label="返回">${SV_BACK}</button><div class="ptitle">商品详情</div><button class="icon-btn" data-fav="${cur.id}" aria-pressed="${isFav(cur.id)}" aria-label="收藏">${SV_HEART}</button></div>`+productBody();}
-function wireGallery(){const g=$("gal"),d=$("gdots");if(!g||!d)return;g.addEventListener("scroll",()=>{const i=Math.round(g.scrollLeft/g.clientWidth);d.querySelectorAll("i").forEach((x,k)=>x.classList.toggle("on",k===i));},{passive:true});}
+function wireGallery(){const g=$("gal"),d=$("gdots"),th=$("gthumbs");if(!g||!d)return;g.addEventListener("scroll",()=>{const i=Math.round(g.scrollLeft/g.clientWidth);d.querySelectorAll("i").forEach((x,k)=>x.classList.toggle("on",k===i));if(th)th.querySelectorAll(".gthumb").forEach((x,k)=>x.classList.toggle("on",k===i));},{passive:true});}
+function showSlide(i){const g=$("gal");if(!g)return;document.querySelectorAll("#gthumbs .gthumb").forEach((x,k)=>x.classList.toggle("on",k===i));const rm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;g.scrollTo({left:i*g.clientWidth,behavior:rm?"auto":"smooth"});}
 let listY=0,navDepth=0,draft=null;
 function openProduct(id){if(!sheetWrap.hidden)closeSheet();if(decodeURIComponent(location.hash.slice(1))===id){showProduct(id);return;}navDepth++;location.hash=id;}
 function showProduct(id){if(!cur)listY=window.scrollY;cur={id,ci:0};render();window.scrollTo(0,0);loadBoard(id);}
@@ -821,9 +898,10 @@ function addToCart(id,ci){const c=S.cart.find(i=>i.id===id&&(i.ci||0)===ci);c?c.
 
 /* ---------- actions ---------- */
 document.addEventListener("click",e=>{
- const t=e.target.closest("[data-open],[data-add],[data-buy],[data-close],[data-tab],[data-cat],[data-inc],[data-dec],[data-checkout],[data-speed],[data-pay],[data-go],[data-unbox],[data-dounbox],[data-keep],[data-real],[data-enough],[data-fast],[data-reset],[data-ci],[data-back],[data-fav],[data-like],[data-write],[data-star],[data-post],[data-del],[data-rep],[data-askq],[data-postq],[data-ans],[data-posta],[data-nick],[data-savenick],[data-adm],[data-admin],[data-admout],[data-admset]");
+ const t=e.target.closest("[data-open],[data-slide],[data-add],[data-buy],[data-close],[data-tab],[data-cat],[data-inc],[data-dec],[data-checkout],[data-speed],[data-pay],[data-go],[data-unbox],[data-dounbox],[data-keep],[data-real],[data-enough],[data-fast],[data-reset],[data-ci],[data-back],[data-fav],[data-like],[data-write],[data-star],[data-post],[data-del],[data-rep],[data-askq],[data-postq],[data-ans],[data-posta],[data-nick],[data-savenick],[data-adm],[data-admin],[data-admout],[data-admset]");
  if(!t)return;const d=t.dataset;
  if(d.open){openProduct(d.open);}
+ else if(d.slide!==undefined){showSlide(+d.slide);}
  else if(d.ci!==undefined){pickColor(+d.ci);}
  else if("back" in d){goBack();}
  else if(d.fav){const id=d.fav,on=!isFav(id);S.favs=on?[id,...S.favs]:S.favs.filter(x=>x!==id);save();document.querySelectorAll(`[data-fav="${id}"]`).forEach(b=>b.setAttribute("aria-pressed",on));toast(on?"收藏了":"取消收藏");}
@@ -866,9 +944,11 @@ document.addEventListener("click",e=>{
  else if("reset" in d){if(!resetArm){resetArm=true;render();setTimeout(()=>{if(resetArm){resetArm=false;if(tab==="me")render();}},4000);}else{resetArm=false;S=fresh();save();render();toast("清空了，重新开始");}}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!sheetWrap.hidden)closeSheet();});
-$("q").addEventListener("input",e=>{q=e.target.value;renderShop();});
+// On wide screens the search box is on every page; typing anywhere else goes back to the shelf.
+$("q").addEventListener("input",e=>{q=e.target.value;if(cur||tab!=="shop")setTab("shop");else renderShop();});
 
 renderChips();render();
+if(MQ){const flip=()=>render();if(MQ.addEventListener)MQ.addEventListener("change",flip);else MQ.addListener(flip);}
 window.addEventListener("hashchange",()=>{const h=decodeURIComponent(location.hash.slice(1));if(!sheetWrap.hidden)closeSheet();if(BY[h])showProduct(h);else{navDepth=0;leaveProduct();}});
 {const h=decodeURIComponent(location.hash.slice(1));if(BY[h])showProduct(h);}
 if(API&&(S.myReviews.length||S.myQs.length||S.myAns.length))migrate().then(()=>{for(const k in RC)delete RC[k];if(cur)loadBoard(cur.id);});
