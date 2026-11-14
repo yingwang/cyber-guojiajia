@@ -1,5 +1,5 @@
 // 赛博过家家 shared board on Cloudflare Workers + D1.
-// Anonymous identities (a random bearer token, stored hashed), reviews and answers only for goods the user has unboxed,
+// Anonymous identities (a random bearer token, stored hashed) with optional username-and-password accounts, reviews and answers only for goods the user has unboxed,
 // questions from anyone, likes, reports that hide a post once three different networks flag it, and an admin key for removal.
 import { PIDS } from "./pids.js";
 
@@ -13,7 +13,7 @@ const COLORS = ["#E2793A", "#3D7BE0", "#169E70", "#B36AD6", "#EE3F6B", "#C79661"
 
 const CORS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+  "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
   "access-control-allow-headers": "content-type, authorization, x-admin",
   "access-control-max-age": "86400",
 };
@@ -31,10 +31,10 @@ function newToken() {
   crypto.getRandomValues(a);
   return btoa(String.fromCharCode(...a)).replace(/[+/=]/g, (c) => ({ "+": "-", "/": "_", "=": "" })[c]);
 }
-async function body(req) {
+async function body(req, max = 4000) {
   try {
     const t = await req.text();
-    return t.length > 4000 ? null : JSON.parse(t || "{}");
+    return t.length > max ? null : JSON.parse(t || "{}");
   } catch {
     return null;
   }
@@ -63,10 +63,17 @@ function problem(s, [lo, hi]) {
   return null;
 }
 
+// A bearer token is either the one a user row was created with or a session from signing in on another device.
 async function who(req, env) {
   const m = (req.headers.get("authorization") || "").match(/^Bearer ([A-Za-z0-9_-]{20,80})$/);
   if (!m) return null;
-  return env.DB.prepare("SELECT id, nick, color, banned FROM users WHERE token_hash = ?").bind(await sha(m[1])).first();
+  const h = await sha(m[1]);
+  const u = await env.DB.prepare(
+    `SELECT u.id, u.nick, u.color, u.banned, l.shown AS user FROM users u LEFT JOIN logins l ON l.uid = u.id
+     WHERE u.id = COALESCE((SELECT id FROM users WHERE token_hash = ?1), (SELECT uid FROM sessions WHERE token_hash = ?1))`
+  ).bind(h).first();
+  if (u) u.tokenHash = h;
+  return u;
 }
 const isAdmin = (req, env) => !!env.ADMIN_KEY && env.ADMIN_KEY.length >= 16 && req.headers.get("x-admin") === env.ADMIN_KEY;
 const ipHash = async (req, env) => (await sha((env.IP_SALT || "") + "|" + (req.headers.get("cf-connecting-ip") || ""))).slice(0, 32);
@@ -96,7 +103,177 @@ async function getMe(req, env) {
     if (!x.hidden) counts[x.kind]++;
     if (x.kind === "r") reviewed.push(x.pid);
   }
-  return json({ nick: me.nick, color: me.color, counts, reviewed });
+  return json({ nick: me.nick, color: me.color, counts, reviewed, user: me.user || null });
+}
+
+/* ---------- accounts ----------
+   Optional. Registering attaches a username and password to the caller's existing user row, so their name, posts and
+   unboxed goods stay theirs. Signing in elsewhere hands that device a session token; if the device had been used
+   anonymously, its posts, goods and likes move into the account first. The shop state (cart, parcels, savings) is kept
+   as one JSON document per account, and the newest write wins. */
+const ITER = 100000;
+const b64 = (u8) => btoa(String.fromCharCode(...u8));
+const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+async function pbkdf2(pw, salt, iter) {
+  const k = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
+  return new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: iter }, k, 256));
+}
+async function hashPw(pw) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return `pbkdf2$${ITER}$${b64(salt)}$${b64(await pbkdf2(pw, salt, ITER))}`;
+}
+async function checkPw(pw, stored) {
+  const [, it, s, h] = String(stored).split("$");
+  const got = await pbkdf2(pw, unb64(s), +it), want = unb64(h);
+  let d = got.length ^ want.length;
+  for (let i = 0; i < got.length && i < want.length; i++) d |= got[i] ^ want[i];
+  return d === 0;
+}
+// Sixteen letters from an alphabet without look-alikes, shown once as XXXX-XXXX-XXXX-XXXX.
+function newRecovery() {
+  const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = crypto.getRandomValues(new Uint8Array(16));
+  const s = [...r].map((x) => A[x % 32]).join("");
+  return s.match(/.{4}/g).join("-");
+}
+const recKey = (s) => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+const nameKey = (s) => s.normalize("NFKC").toLowerCase();
+function nameProblem(n) {
+  if (!/^[\p{L}\p{N}_]+$/u.test(n)) return "用户名只能用文字、字母、数字和下划线";
+  const len = [...n].length;
+  if (len < 2 || len > 16) return "用户名 2 到 16 个字";
+  if (/(管理|官方|客服|过家家|admin)/i.test(n)) return "换个用户名吧";
+  return problem(n, [2, 16]);
+}
+const pwProblem = (p) => (typeof p !== "string" || p.length < 6 ? "密码至少 6 位" : p.length > 64 ? "密码最多 64 位" : null);
+
+async function hits(env, k, since) {
+  return count(env, "SELECT COUNT(*) AS n FROM hits WHERE k = ? AND created_at > ?", k, since);
+}
+async function hit(env, k) {
+  const t = Date.now();
+  await env.DB.prepare("INSERT INTO hits (k, created_at) VALUES (?, ?)").bind(k, t).run();
+  if (Math.random() < 0.05) await env.DB.prepare("DELETE FROM hits WHERE created_at < ?").bind(t - DAY).run();
+}
+// Wrong passwords: eight per name in fifteen minutes, thirty per network in an hour.
+async function tooManyFails(env, name, ip) {
+  const t = Date.now();
+  return (await hits(env, "f:" + name, t - 15 * MIN)) >= 8 || (await hits(env, "fi:" + ip, t - HOUR)) >= 30;
+}
+async function getState(env, uid) {
+  const s = await env.DB.prepare("SELECT data, at FROM states WHERE uid = ?").bind(uid).first();
+  return s ? { state: JSON.parse(s.data), at: s.at } : { state: null, at: 0 };
+}
+// Move what an anonymous device did into the account it is signing in to, then drop the anonymous row.
+async function absorb(env, from, into) {
+  await env.DB.batch([
+    env.DB.prepare("INSERT OR IGNORE INTO orders (uid, pid, created_at) SELECT ?, pid, created_at FROM orders WHERE uid = ?").bind(into, from),
+    env.DB.prepare("DELETE FROM orders WHERE uid = ?").bind(from),
+    env.DB.prepare("UPDATE posts SET uid = ? WHERE uid = ?").bind(into, from),
+    env.DB.prepare("INSERT OR IGNORE INTO likes (target, uid, pid, created_at) SELECT target, ?, pid, created_at FROM likes WHERE uid = ?").bind(into, from),
+    env.DB.prepare("DELETE FROM likes WHERE uid = ?").bind(from),
+    env.DB.prepare("INSERT OR IGNORE INTO reports (post_id, uid, ip_hash, created_at) SELECT post_id, ?, ip_hash, created_at FROM reports WHERE uid = ?").bind(into, from),
+    env.DB.prepare("DELETE FROM reports WHERE uid = ?").bind(from),
+    env.DB.prepare("DELETE FROM users WHERE id = ?").bind(from),
+  ]);
+}
+async function startSession(req, env, uid) {
+  const me = await who(req, env);
+  if (me && me.id !== uid && !me.user) await absorb(env, me.id, uid);
+  const token = newToken();
+  await env.DB.prepare("INSERT INTO sessions (token_hash, uid, created_at) VALUES (?, ?, ?)").bind(await sha(token), uid, Date.now()).run();
+  const u = await env.DB.prepare("SELECT u.nick, u.color, l.shown FROM users u JOIN logins l ON l.uid = u.id WHERE u.id = ?").bind(uid).first();
+  return { token, nick: u.nick, color: u.color, user: u.shown, ...(await getState(env, uid)) };
+}
+
+async function register(req, env) {
+  const me = await who(req, env);
+  if (!me) return fail("请刷新页面", 401);
+  if (me.user) return fail("已经登录了", 409);
+  const b = await body(req), shown = clean(b && b.name), pw = b && b.password;
+  const why = nameProblem(shown) || pwProblem(pw);
+  if (why) return fail(why);
+  const ip = await ipHash(req, env);
+  if ((await hits(env, "r:" + ip, Date.now() - HOUR)) >= 10) return fail("先歇一会儿再来", 429);
+  const name = nameKey(shown);
+  if (await env.DB.prepare("SELECT 1 AS ok FROM logins WHERE name = ?").bind(name).first()) return fail("这个用户名有人用了", 409);
+  const rec = newRecovery();
+  try {
+    await env.DB.prepare("INSERT INTO logins (uid, name, shown, pw, rec, created_at) VALUES (?, ?, ?, ?, ?, ?)")
+      .bind(me.id, name, shown, await hashPw(pw), await sha(recKey(rec)), Date.now()).run();
+  } catch {
+    return fail("这个用户名有人用了", 409);
+  }
+  await hit(env, "r:" + ip);
+  return json({ user: shown, recovery: rec });
+}
+
+async function login(req, env) {
+  const b = await body(req), shown = clean(b && b.name), pw = b && b.password;
+  if (!shown || typeof pw !== "string" || !pw) return fail("填上用户名和密码");
+  const name = nameKey(shown), ip = await ipHash(req, env);
+  if (await tooManyFails(env, name, ip)) return fail("错得太多了，过一会儿再试", 429);
+  const l = await env.DB.prepare("SELECT uid, pw FROM logins WHERE name = ?").bind(name).first();
+  if (!l || !(await checkPw(pw.slice(0, 64), l.pw))) {
+    await hit(env, "f:" + name);
+    await hit(env, "fi:" + ip);
+    return fail("用户名或密码不对", 403);
+  }
+  return json(await startSession(req, env, l.uid));
+}
+
+// Forgotten password: the recovery code sets a new one, signs this device in and replaces the code.
+async function resetPw(req, env) {
+  const b = await body(req), shown = clean(b && b.name), pw = b && b.password;
+  const why = pwProblem(pw);
+  if (!shown || !recKey(b && b.recovery)) return fail("填上用户名和恢复码");
+  if (why) return fail(why);
+  const name = nameKey(shown), ip = await ipHash(req, env);
+  if (await tooManyFails(env, name, ip)) return fail("错得太多了，过一会儿再试", 429);
+  const l = await env.DB.prepare("SELECT uid, rec FROM logins WHERE name = ?").bind(name).first();
+  if (!l || l.rec !== (await sha(recKey(b.recovery)))) {
+    await hit(env, "f:" + name);
+    await hit(env, "fi:" + ip);
+    return fail("用户名或恢复码不对", 403);
+  }
+  const rec = newRecovery();
+  // A new password signs every other device out.
+  await env.DB.batch([
+    env.DB.prepare("UPDATE logins SET pw = ?, rec = ? WHERE uid = ?").bind(await hashPw(pw), await sha(recKey(rec)), l.uid),
+    env.DB.prepare("DELETE FROM sessions WHERE uid = ?").bind(l.uid),
+    env.DB.prepare("UPDATE users SET token_hash = ? WHERE id = ?").bind("x" + (await sha(newToken())), l.uid),
+  ]);
+  return json({ ...(await startSession(req, env, l.uid)), recovery: rec });
+}
+
+async function logout(req, env) {
+  const me = await who(req, env);
+  if (!me) return json({ ok: true });
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(me.tokenHash),
+    env.DB.prepare("UPDATE users SET token_hash = ? WHERE token_hash = ?").bind("x" + (await sha(newToken())), me.tokenHash),
+  ]);
+  return json({ ok: true });
+}
+
+async function stateGet(req, env) {
+  const me = await who(req, env);
+  if (!me) return fail("请刷新页面", 401);
+  if (!me.user) return fail("请先登录", 403);
+  return json(await getState(env, me.id));
+}
+
+async function statePut(req, env) {
+  const me = await who(req, env);
+  if (!me) return fail("请刷新页面", 401);
+  if (!me.user) return fail("请先登录", 403);
+  const b = await body(req, 300000), s = b && b.state, at = Number(b && b.at);
+  if (!s || typeof s !== "object" || !Array.isArray(s.cart) || !Array.isArray(s.orders) || !Number.isFinite(at) || at <= 0)
+    return fail("格式不对");
+  const t = Date.now();
+  await env.DB.prepare("INSERT INTO states (uid, data, at) VALUES (?, ?, ?) ON CONFLICT (uid) DO UPDATE SET data = excluded.data, at = excluded.at WHERE excluded.at >= states.at")
+    .bind(me.id, JSON.stringify(s), Math.min(at, t + MIN)).run();
+  const cur = await env.DB.prepare("SELECT at FROM states WHERE uid = ?").bind(me.id).first();
+  return json({ at: cur ? cur.at : 0 });
 }
 
 async function setNick(req, env) {
@@ -276,6 +453,11 @@ export default {
     try {
       if (path === "/api/me") return M === "POST" ? await createUser(req, env) : await getMe(req, env);
       if (path === "/api/me/nick" && M === "POST") return await setNick(req, env);
+      if (path === "/api/account/register" && M === "POST") return await register(req, env);
+      if (path === "/api/account/login" && M === "POST") return await login(req, env);
+      if (path === "/api/account/reset" && M === "POST") return await resetPw(req, env);
+      if (path === "/api/account/logout" && M === "POST") return await logout(req, env);
+      if (path === "/api/account/state") return M === "PUT" ? await statePut(req, env) : await stateGet(req, env);
       if (path === "/api/orders" && M === "POST") return await addOrders(req, env);
       if ((m = path.match(/^\/api\/p\/([a-z0-9-]{1,40})$/)) && M === "GET") return await getProduct(req, env, m[1]);
       if ((m = path.match(/^\/api\/p\/([a-z0-9-]{1,40})\/posts$/)) && M === "POST") return await addPost(req, env, m[1]);

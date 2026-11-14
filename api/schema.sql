@@ -56,3 +56,33 @@ CREATE TABLE IF NOT EXISTS reports (
   PRIMARY KEY (post_id, uid)
 );
 CREATE INDEX IF NOT EXISTS reports_uid ON reports (uid, created_at);
+
+-- Accounts (optional): a username and password attached to an existing user row, so the same identity, posts and goods follow
+-- the person to other devices. pw is pbkdf2$<iterations>$<salt>$<hash>; rec is the SHA-256 of the one-time-shown recovery code.
+CREATE TABLE IF NOT EXISTS logins (
+  uid INTEGER PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  shown TEXT NOT NULL,
+  pw TEXT NOT NULL,
+  rec TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+-- Extra devices signed in to an account; the device that registered keeps using users.token_hash.
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash TEXT PRIMARY KEY,
+  uid INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS sessions_uid ON sessions (uid);
+-- The shop state (cart, parcels, goods, favourites, savings) of a signed-in user; the newest write wins.
+CREATE TABLE IF NOT EXISTS states (
+  uid INTEGER PRIMARY KEY,
+  data TEXT NOT NULL,
+  at INTEGER NOT NULL
+);
+-- Rate-limit marks for sign-ups and wrong passwords.
+CREATE TABLE IF NOT EXISTS hits (
+  k TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS hits_k ON hits (k, created_at);
