@@ -441,7 +441,7 @@ const P=BASE.map(b=>{const c=CONTENT[b.id]||{};return Object.assign({},b,{
   desc:c.desc||b.blurb, points:c.points||[], specs:c.specs||[],
   colors:(c.colors&&c.colors.length)?c.colors:[["默认",b.color]], reviews:c.reviews||[]});});
 const BY=Object.fromEntries(P.map(p=>[p.id,p]));
-const CATS=["全部","数码","美妆","服饰","运动","家居","吃喝"];
+const CATS=["全部","数码","美妆","服饰","运动","家居","吃喝","玩具"].filter(c=>c==="全部"||P.some(p=>p.cat===c));
 const hexOf=(p,ci)=>(p.colors[ci]||p.colors[0])[1];
 const colorName=(p,ci)=>(p.colors[ci]||p.colors[0])[0];
 
