@@ -11,7 +11,7 @@
    Kraft parcels and yellow price tags carry the identity. */
 :root{
   --bg:#EDF0F6; --surface:#FFFFFF; --tile:#E1E7F1; --ink:#17203A; --muted:#5C6684; --line:#D2D9E6;
-  --accent:#EE3F6B; --accent-ink:#FFFFFF; --tag:#FFC93A; --tag-ink:#2B2100; --kraft:#C79661; --kraft-dark:#9A6E3E; --ok:#169E70;
+  --accent:#0B7F86; --accent-ink:#FFFFFF; --tag:#FFC93A; --tag-ink:#2B2100; --kraft:#C79661; --kraft-dark:#9A6E3E; --ok:#169E70;
   --soft:#F4F6FA; --scrim:rgba(10,14,24,.45);
   --f-display:"ZCOOL KuaiLe","Noto Sans SC",system-ui,sans-serif;
   --f-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
@@ -19,11 +19,11 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0F131D; --surface:#181E2D; --tile:#222A3D; --ink:#ECEFF7; --muted:#98A1BB; --line:#2B3349;
-  --accent:#FF5C86; --accent-ink:#FFFFFF; --tag:#FFD153; --tag-ink:#2B2100; --kraft:#B78852; --kraft-dark:#8B6236; --ok:#31BE8C;
+  --accent:#3CC4C4; --accent-ink:#062A2C; --tag:#FFD153; --tag-ink:#2B2100; --kraft:#B78852; --kraft-dark:#8B6236; --ok:#31BE8C;
   --soft:#1E2536; --scrim:rgba(0,0,0,.6); color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#0F131D; --surface:#181E2D; --tile:#222A3D; --ink:#ECEFF7; --muted:#98A1BB; --line:#2B3349;
-  --accent:#FF5C86; --accent-ink:#FFFFFF; --tag:#FFD153; --tag-ink:#2B2100; --kraft:#B78852; --kraft-dark:#8B6236; --ok:#31BE8C;
+  --accent:#3CC4C4; --accent-ink:#062A2C; --tag:#FFD153; --tag-ink:#2B2100; --kraft:#B78852; --kraft-dark:#8B6236; --ok:#31BE8C;
   --soft:#1E2536; --scrim:rgba(0,0,0,.6); color-scheme:dark }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -191,7 +191,7 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
 .opt small{color:var(--muted);font-size:12px}
 .opt[aria-checked="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,transparent)}
 .pay{position:relative;height:168px;margin-top:18px}
-.cardface{position:absolute;top:0;left:50%;margin-left:-110px;width:220px;height:134px;border-radius:16px;padding:14px 16px;color:var(--accent-ink);background:linear-gradient(135deg,var(--accent),#FF8B55 58%,var(--tag));display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 10px 24px rgba(23,32,58,.18);z-index:1}
+.cardface{position:absolute;top:0;left:50%;margin-left:-110px;width:220px;height:134px;border-radius:16px;padding:14px 16px;color:#FFFFFF;background:linear-gradient(135deg,#0B7F86,#3FB6C2);display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 10px 24px rgba(23,32,58,.18);z-index:1}
 .cardface .t{display:flex;justify-content:space-between;align-items:flex-start;font-family:var(--f-display);font-size:18px}
 .cardface .t b{font-family:var(--f-num);font-size:30px;line-height:.9}
 .cardface .num{font-family:var(--f-num);letter-spacing:2px;font-size:15px}
@@ -764,7 +764,7 @@ function closeSheet(){sheetWrap.classList.remove("show");setTimeout(()=>{sheetWr
 let toastT;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800);}
 
 function compareSet(p){let g=P.filter(x=>x.group===p.group&&x.id!==p.id);if(!g.length)g=P.filter(x=>x.cat===p.cat&&x.id!==p.id).sort((a,b)=>Math.abs(a.price-p.price)-Math.abs(b.price-p.price)).slice(0,2);return g.slice(0,3);}
-const AVC=["#E2793A","#3D7BE0","#169E70","#B36AD6","#EE3F6B","#C79661","#2F8F9D","#7A6CE0"];
+const AVC=["#E2793A","#3D7BE0","#169E70","#B36AD6","#8A9A2B","#C79661","#2F8F9D","#7A6CE0"];
 function stars(n){return `<span class="stars" aria-label="${n} 星">${"★".repeat(n)}<b>${"★".repeat(5-n)}</b></span>`;}
 const hashStr=t=>[...t].reduce((a,ch)=>(a*31+ch.charCodeAt(0))>>>0,7);
 function agoText(t){const d=now()-t;if(d<60e3)return "刚刚";if(d<HR)return Math.floor(d/60e3)+" 分钟前";if(d<DAY)return Math.floor(d/HR)+" 小时前";return Math.floor(d/DAY)+" 天前";}
