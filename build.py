@@ -1,9 +1,10 @@
 """Build the published pages from src/app.html and the catalog in data/.
 
-prototype.html     the Claude Artifact (no document skeleton; the Artifact host adds one), photo version
-index.html         the original GitHub Pages site, hand-drawn goods (frozen, no longer rebuilt)
-photo/index.html   the second GitHub Pages site, the same shop with real-looking photos
-Both Pages sites talk to the same shared board.
+prototype.html       the Claude Artifact (no document skeleton; the Artifact host adds one)
+index.html           the GitHub Pages site: the shop with real-looking photos (the main site since 2026-11-14)
+photo/index.html     the photo shop's first address; now only forwards to the root, keeping the #product part
+classic/index.html   the original hand-drawn shop (frozen since 2026-11-13, never rebuilt)
+The pictures stay in photo/img. Every page talks to the same shared board.
 """
 import json
 import pathlib
@@ -63,7 +64,14 @@ def page(artifact):
 
 artifact = render(photos)
 (here / 'prototype.html').write_text(artifact, encoding='utf-8')
-# index.html (the hand-drawn site) is frozen since 2026-11-13; only the photo site is built now.
-(here / 'photo' / 'index.html').write_text(page(artifact), encoding='utf-8')
+# The root page sits one level above photo/, so its picture paths get the folder in front.
+root_photos = {pid: {k: 'photo/' + v for k, v in f.items()} for pid, f in photos.items()}
+(here / 'index.html').write_text(page(render(root_photos)), encoding='utf-8')
+(here / 'photo' / 'index.html').write_text(
+    '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n<title>赛博过家家</title>\n'
+    '<link rel="canonical" href="https://yingwang.github.io/cyber-guojiajia/">\n'
+    '<script>location.replace("../" + location.hash)</script>\n'
+    '<meta http-equiv="refresh" content="0;url=../">\n</head>\n'
+    '<body><a href="../">赛博过家家</a></body>\n</html>\n', encoding='utf-8')
 print('products', len(base), 'with copy', sum(1 for b in base if b['id'] in content), 'with qa', len(qa),
       'with photos', len(photos), '| prototype', len(artifact))

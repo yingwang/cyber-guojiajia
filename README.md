@@ -10,6 +10,8 @@
 
 改 `src/app.html`，再跑 `python3 build.py`。它生成两份：`prototype.html`（Claude Artifact，评价只存在本机浏览器）和 `index.html`（GitHub Pages，评价、问答、点赞走共享后台）。
 
+商品照片在 `photo/img/`。`photo/` 是照片版最早的网址，现在只转到首页；`classic/` 是最早的手绘版，不再更新。
+
 ## 共享后台
 
 `api/` 是 Cloudflare Worker 加 D1 数据库，地址 `https://gjj-api.yingwang.dev`。
