@@ -22,6 +22,16 @@ photos = json.loads(ppath.read_text(encoding='utf-8')) if ppath.exists() else {}
 photos = {pid: f for pid, f in photos.items()
           if all((here / 'photo' / f[k]).exists() for k in ('main', 'wide', 'scene'))}
 # The catalogue may hold rows that are still waiting for their copy, questions or pictures; only finished ones go on the shelf.
+# Nothing on the shelf is drawn: each product is sold in the one colour its photo shows,
+# so further colours and the colour labels on the shop's own reviews and answers are left out.
+for c in content.values():
+    c['colors'] = c.get('colors', [])[:1]
+    for r in c.get('reviews', []):
+        r.pop('color', None)
+for qs in qa.values():
+    for x in qs:
+        for ans in x.get('answers', []):
+            ans.pop('color', None)
 all_ids = [b['id'] for b in base]
 base = [b for b in base if b['id'] in content and b['id'] in qa and b['id'] in photos]
 

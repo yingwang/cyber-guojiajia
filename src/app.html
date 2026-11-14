@@ -539,8 +539,8 @@ const ART={
  snackpack:c=>`<path d="M12 40 L20 34 H100 L108 40 V86 L100 92 H20 L12 86 Z" fill="${c}"/><circle cx="46" cy="63" r="17" fill="#2A2524"/><circle cx="46" cy="63" r="12" fill="none" stroke="#4A403C" stroke-width="1.5"/><circle cx="70" cy="63" r="17" fill="#2A2524"/><circle cx="70" cy="63" r="12" fill="none" stroke="#4A403C" stroke-width="1.5"/><rect x="20" y="38" width="80" height="4" fill="${H}"/>`
 };
 const inner=(p,ci)=>ART[p.kind]?ART[p.kind](hexOf(p,ci||0)):"";
-/* the photo site has a real-looking picture per item; it only matches the first colourway */
-const photo=(p,ci)=>(!ci&&PHOTOS[p.id])||null;
+/* every item on the shelf has a real-looking picture and is sold in the one colour that picture shows */
+const photo=(p,ci)=>((!ci||!p.colors[ci])&&PHOTOS[p.id])||null;
 const art=(p,ci)=>{const f=photo(p,ci);return f?`<img class="ph" src="${f.thumb||f.main}" alt="" loading="lazy" decoding="async">`:`<svg viewBox="0 0 120 120" aria-hidden="true">${inner(p,ci)}</svg>`;};
 
 /* gallery pictures (200 x 125) */
@@ -556,8 +556,7 @@ function sceneBg(cat){
 function slides(p,ci){
  const pr=inner(p,ci), nm=p.name.length>11?p.name.slice(0,11)+"…":p.name, f=photo(p,ci);
  if(f){const im=(src,cls)=>`<img src="${src}"${cls?` class="${cls}"`:""} alt="" loading="lazy" decoding="async">`;
-  return [["主图",im(f.wide)],["场景",im(f.scene)],["细节",im(f.main,"zoom")],
-   ["包装",`<svg viewBox="0 0 200 125" aria-hidden="true"><rect width="200" height="125" class="sc-wall"/><path d="M40 42 L56 26 H144 L160 42 Z" class="krd"/><rect x="40" y="42" width="120" height="72" class="kr"/><rect x="92" y="42" width="16" height="72" class="tapef"/><rect x="46" y="54" width="42" height="34" rx="2" fill="#F3EBDD"/><text x="50" y="64" font-size="5" fill="#5A4A36" font-family="Noto Sans SC,sans-serif">${esc(nm)}</text><text x="50" y="72" font-size="4.2" fill="#8A7A62" font-family="Noto Sans SC,sans-serif">过家家物流</text><text x="50" y="80" font-size="4.2" fill="#8A7A62" font-family="Noto Sans SC,sans-serif">小心轻放 · 易碎</text><image href="${f.main}" x="114" y="48" width="40" height="40" preserveAspectRatio="xMidYMid slice"/><circle cx="132" cy="100" r="9" fill="none" stroke="#C8323A" stroke-width="1.5"/><text x="132" y="102" text-anchor="middle" font-size="5" fill="#C8323A" font-family="Noto Sans SC,sans-serif">已验</text></svg>`]];}
+  return [["主图",im(f.wide)],["场景",im(f.scene)],["细节",im(f.main,"zoom")]];}
  return [
   ["主图",`<svg viewBox="0 0 200 125" aria-hidden="true"><svg x="45" y="7" width="110" height="110" viewBox="0 0 120 120">${pr}</svg></svg>`],
   ["场景",`<svg viewBox="0 0 200 125" aria-hidden="true">${sceneBg(p.cat)}<svg x="60" y="30" width="80" height="80" viewBox="0 0 120 120">${pr}</svg></svg>`],
@@ -602,6 +601,8 @@ function fresh(){const t=now();return{cart:[],fast:true,saved:528,unboxCount:1,f
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.cart)&&Array.isArray(s.orders))return s;}catch(e){}return fresh();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 let S=load();
+{const fix=i=>{const p=BY[i.id];if(p&&!p.colors[i.ci||0])i.ci=0;};S.cart.forEach(fix);S.orders.forEach(o=>(o.items||[]).forEach(fix));(S.owned||[]).forEach(fix);
+ S.cart=S.cart.reduce((a,i)=>{const c=a.find(x=>x.id===i.id&&(x.ci||0)===(i.ci||0));c?c.qty+=i.qty:a.push(i);return a;},[]);}
 ["favs","myReviews","myQs","myAns","synced","rep"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!S.likes||typeof S.likes!=="object")S.likes={};
 // Sample reviews and questions are keyed s:<id>:<i>, the same keys the shared board uses.
 {const L={};for(const k in S.likes)L[/^(?!me:)[a-z0-9-]+:\d+$/.test(k)?"s:"+k:k]=1;S.likes=L;
@@ -775,11 +776,11 @@ function reviewsSection(p){const B=board(p.id),o=owns(p.id),done=B.reviews.some(
  const act=o&&!done?`<button class="btn sm" data-write="${p.id}" data-wci="${o.ci||0}">写评价</button>`:(!o?`<span class="note">收到包裹后能写评价</span>`:"");
  return `<div class="sec-head"><h3>买家评价 <small>${p.sold} 条</small></h3>${act}</div><div class="rv-head"><div class="rv-score">${p.rating.toFixed(1)}</div><div>${stars(Math.round(p.rating))}<div class="rv-note">商品名均为谐音，自带的评价和问答是虚构的</div></div></div>`+
   (B.err?`<p class="board-note">大家的评价暂时没连上</p>`:"")+
-  B.reviews.map(r=>{const k=API?"r:"+r.id:r.id;return rvHtml(r.nick,API?okColor(r.color):AVC[hashStr(r.nick)%AVC.length],r.stars,agoText(r.t)+" · "+colorName(p,r.ci),r.text,"",r.mine?MINE:"",likeBtn(k,0,B,API&&r.mine)+postTool(r,"r"));}).join("")+
+  B.reviews.map(r=>{const k=API?"r:"+r.id:r.id;return rvHtml(r.nick,API?okColor(r.color):AVC[hashStr(r.nick)%AVC.length],r.stars,agoText(r.t)+(p.colors.length>1?" · "+colorName(p,r.ci):""),r.text,"",r.mine?MINE:"",likeBtn(k,0,B,API&&r.mine)+postTool(r,"r"));}).join("")+
   p.reviews.map((r,i)=>{const k=`s:${p.id}:${i}`;return rvHtml(r.nick,AVC[hashStr(r.nick)%AVC.length],r.stars,(r.ago||"")+(r.color?" · "+r.color:""),r.text,r.follow,SAMPLE,likeBtn(k,3+hashStr(p.id+i)%160,B));}).join("");}
 function qaItem(p,B,qkey,x){const o=owns(p.id),ans=B.ans.filter(a=>a.parent===qkey),answered=ans.some(a=>a.mine);
  const seed=(x.sample||[]).map(a=>`<div class="qa-a"><i>答</i><div>${esc(a.text)} <small>${esc(a.nick)}${a.color?" · "+esc(a.color):""}</small></div></div>`).join("");
- const user=ans.map(a=>`<div class="qa-a"><i>答</i><div>${esc(a.text)} <small>${esc(a.nick)} · ${esc(colorName(p,a.ci))}${a.mine?MINE:""}</small>${postTool(a,"a",true)}</div></div>`).join("");
+ const user=ans.map(a=>`<div class="qa-a"><i>答</i><div>${esc(a.text)} <small>${esc(a.nick)}${p.colors.length>1?" · "+esc(colorName(p,a.ci)):""}${a.mine?MINE:""}</small>${postTool(a,"a",true)}</div></div>`).join("");
  const meta=x.sample?`${esc(x.nick)} · ${esc(x.ago)}${SAMPLE}`:`${esc(x.nick)} · ${agoText(x.t)}${x.mine?MINE:""}${postTool(x,"q",true)}`;
  return `<div class="qa"><div class="qa-q"><i>问</i><div>${esc(x.text)}</div></div><div class="qa-meta">${meta}</div>${seed+user||'<div class="qa-wait">等收到包裹的人来答</div>'}${o&&!answered?`<button class="ask" data-ans="${qkey}" data-pid="${p.id}">我来答</button>`:""}</div>`;}
 function qaSection(p){const B=board(p.id),qs=QA[p.id]||[];
