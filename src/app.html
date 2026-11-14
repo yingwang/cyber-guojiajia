@@ -221,7 +221,6 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
 .st{font-size:12px;border-radius:6px;padding:1px 8px;background:var(--tile)}
 .st.go{background:var(--tag);color:var(--tag-ink)}
 .st.done{background:var(--ok);color:var(--accent-ink)}
-.demo{font-size:11px;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:0 6px}
 .thumbs{display:flex;gap:8px;margin:12px 0 0;position:relative}
 .thumbs .art{width:56px;border-radius:12px}
 .bar{position:relative;height:8px;border-radius:4px;background:var(--tile);margin:30px 0 8px}
@@ -330,7 +329,7 @@ table.cmp{width:100%;border-collapse:collapse;font-size:13px}
 .minip .art{width:56px;border-radius:12px;flex:none}
 .small-link{all:unset;cursor:pointer;font-size:12px;color:var(--accent)}
 .field.one{min-height:0;height:46px;resize:none}
-.rv-top .demo,.qa-meta .demo,.qa-meta .mine,.qa-a .mine{margin-left:6px;font-weight:400}
+.qa-meta .mine,.qa-a .mine{margin-left:6px;font-weight:400}
 .del.in{margin:0 0 0 8px}
 .like:disabled{cursor:default}
 .board-note{font-size:12px;color:var(--muted);margin:10px 0 0}
@@ -696,7 +695,7 @@ function stageOf(p){let c=0;STAGES.forEach((s,i)=>{if(p>=s.t)c=i});return c;}
 function parcel(o){
  const p=prog(o),c=stageOf(p),done=p>=1;
  const st=!done?`<span class="st go">${STAGES[c].label}</span>`:o.unboxed?`<span class="st">已拆箱</span>`:`<span class="st done">待拆箱</span>`;
- return `<article class="parcel" data-no="${o.no}"><div class="p-head"><span class="no">${o.no}</span>${o.demo?'<span class="demo">示例</span>':""}${st}</div>
+ return `<article class="parcel" data-no="${o.no}"><div class="p-head"><span class="no">${o.no}</span>${st}</div>
  <div class="thumbs">${o.items.map(i=>`<div class="art">${art(BY[i.id],i.ci)}</div>`).join("")}</div>
  <div class="bar"><i style="width:${p*100}%"></i><b class="truck" style="left:${p*100}%">${TRUCK}</b></div>
  <ol class="stages">${STAGES.map((s,i)=>`<li class="${i<=c?"done":""}">${s.label}</li>`).join("")}</ol>
@@ -712,7 +711,7 @@ function jarSvg(){const lv=S.saved<=0?0:Math.max(.08,Math.min(1,Math.log10(S.sav
 function ownCard(x,i){const p=BY[x.id],left=coolLeft(x),f=Math.min(1,1-left/coolDur());
  const tail=x.enough?`<div class="keep">有这个就够了</div>`:left>0?`<div class="cool"><span>冷静中</span><b data-cool="${i}">${fmtDur(left)}</b></div><div class="coolbar"><i data-coolbar="${i}" style="width:${f*100}%"></i></div>`:`<button class="btn sm" data-real="${i}">还想要真的？</button>`;
  const rv=reviewed(p.id)?`<span class="meta">已评价</span>`:`<button class="small-link" data-write="${p.id}" data-wci="${x.ci||0}">写评价</button>`;
- return `<div class="own"><div class="art" data-open="${p.id}" style="cursor:pointer">${art(p,x.ci)}</div><div class="nm">${esc(p.name)}${x.qty>1?` ×${x.qty}`:""}</div><div class="row">${x.demo?'<span class="demo">示例</span>':""}${rv}</div>${tail}</div>`;}
+ return `<div class="own"><div class="art" data-open="${p.id}" style="cursor:pointer">${art(p,x.ci)}</div><div class="nm">${esc(p.name)}${x.qty>1?` ×${x.qty}`:""}</div><div class="row">${rv}</div>${tail}</div>`;}
 const reviewed=id=>API?!!(ME&&ME.reviewed&&ME.reviewed.includes(id))||board(id).reviews.some(r=>r.mine):S.myReviews.some(r=>r.id===id);
 const owns=id=>S.owned.find(x=>x.id===id);
 const myReviewCount=()=>API?(ME&&ME.counts?ME.counts.r:0):S.myReviews.length;
@@ -880,7 +879,7 @@ function keep(no){const o=S.orders.find(x=>x.no===no);if(!o||o.unboxed)return;o.
 
 function openReal(i){const x=S.owned[i];if(!x)return;const p=BY[x.id],code="GJJ-"+Math.random().toString(36).slice(2,6).toUpperCase();
  openSheet(`<div class="sh-art">${art(p,x.ci)}</div><h2>冷静了七天，还惦记</h2><p class="blurb">那就是真喜欢。真货叫 ${esc(p.real)}。</p>
- <div class="coupon"><span class="pct">9折</span><b>${code}</b><small>示例券，将来由商家出</small></div>`,
+ <div class="coupon"><span class="pct">9折</span><b>${code}</b><small>将来由商家出</small></div>`,
  `<button class="btn ghost" data-enough="${i}">有这个就够</button><a class="btn" href="https://www.amazon.com/s?k=${encodeURIComponent(p.real)}" target="_blank" rel="noopener">去看真的</a>`);}
 
 function addToCart(id,ci){const c=S.cart.find(i=>i.id===id&&(i.ci||0)===ci);c?c.qty++:S.cart.push({id,qty:1,ci});save();renderTabs();}
